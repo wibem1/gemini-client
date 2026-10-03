@@ -1,5 +1,5 @@
 'use strict';
-// Local file generation. Model output is data; no generated program is executed.
+// Local file generation; legacy MIDIUtil answers use a bounded worker with an in-memory MIDI adapter.
 function safeFilename(name,fallback) {
   return (typeof name==='string'?name:'').replace(/[\\/<>:"|?*\x00-\x1f]/g,'_').slice(0,120) || fallback;
 }
@@ -14,8 +14,12 @@ function buildMidi(score) {
   const text=new TextEncoder();
   function vlq(n){if(!Number.isInteger(n)||n<0||n>0xfffffff)throw new Error('MIDI-Zeitwert außerhalb des zulässigen Bereichs.');const bytes=[n&127];while(n>>>=7)bytes.unshift((n&127)|128);return bytes;}
   function chunk(type,data){return [...text.encode(type),...u32(data.length),...data];}
-  const microseconds=Math.round(60000000/tempo);
-  const conductor=[0,255,81,3,(microseconds>>16)&255,(microseconds>>8)&255,microseconds&255,0,255,88,4,signature[0],Math.log2(signature[1]),24,8,0,255,47,0];
+  const tempoEvents=[];const tempoMap=new Map();
+  for(const event of score.tempos || [{start:0,tempo}]){if(typeof event.start!=='number'||!Number.isFinite(event.start)||event.start<0||event.start>100000||typeof event.tempo!=='number'||!Number.isFinite(event.tempo)||event.tempo<10||event.tempo>500)throw new Error('Ungültiger Tempowechsel.');tempoMap.set(Math.round(event.start*ppq),event.tempo);}
+  if(!tempoMap.has(0))tempoMap.set(0,tempo);
+  for(const [tick,bpm] of [...tempoMap].sort((a,b)=>a[0]-b[0])){const microseconds=Math.round(60000000/bpm);tempoEvents.push({tick,bytes:[255,81,3,(microseconds>>16)&255,(microseconds>>8)&255,microseconds&255]});}
+  const conductor=[0,255,88,4,signature[0],Math.log2(signature[1]),24,8];let tempoTick=0;
+  for(const event of tempoEvents){conductor.push(...vlq(event.tick-tempoTick),...event.bytes);tempoTick=event.tick;}conductor.push(0,255,47,0);
   const tracks=[chunk('MTrk',conductor)];let totalNotes=0;
   for(let i=0;i<score.tracks.length;i++) {
     const track=score.tracks[i];if(!track || !Array.isArray(track.notes))throw new Error(`Spur ${i+1}: Notenliste fehlt.`);
@@ -24,15 +28,18 @@ function buildMidi(score) {
     if(!Number.isInteger(program)||program<0||program>127||!Number.isInteger(channel)||channel<0||channel>15)throw new Error(`Spur ${i+1}: Ungültiges Instrument oder MIDI-Kanal.`);
     const events=[];
     for(const note of track.notes) {
-      const {pitch,start,duration}=note;const velocity=note.velocity ?? 80;
+      const {pitch,start,duration}=note;const velocity=note.velocity ?? 80;const noteChannel=note.channel ?? channel;
+      if(!Number.isInteger(noteChannel)||noteChannel<0||noteChannel>15)throw new Error('Ungültiger Notenkanal.');
       if(!Number.isInteger(pitch)||pitch<0||pitch>127||!Number.isInteger(velocity)||velocity<1||velocity>127||typeof start!=='number'||!Number.isFinite(start)||start<0||typeof duration!=='number'||!Number.isFinite(duration)||duration<=0||start+duration>100000)throw new Error(`Spur ${i+1}: Ungültige Note.`);
       const begin=Math.round(start*ppq),end=Math.round((start+duration)*ppq);
       if(end<=begin)throw new Error(`Spur ${i+1}: Note ist zu kurz.`);
-      events.push({tick:begin,order:1,bytes:[144+channel,pitch,velocity]},{tick:end,order:0,bytes:[128+channel,pitch,0]});
+      events.push({tick:begin,order:1,bytes:[144+noteChannel,pitch,velocity]},{tick:end,order:0,bytes:[128+noteChannel,pitch,0]});
     }
+    for(const change of track.programs || []){if(!Number.isInteger(change.program)||change.program<0||change.program>127||!Number.isInteger(change.channel)||change.channel<0||change.channel>15||typeof change.start!=='number'||!Number.isFinite(change.start)||change.start<0||change.start>100000)throw new Error('Ungültiger Instrumentwechsel.');events.push({tick:Math.round(change.start*ppq),order:-2,bytes:[192+change.channel,change.program]});}
+    for(const control of track.controllers || []){if(!Number.isInteger(control.controller)||control.controller<0||control.controller>127||!Number.isInteger(control.value)||control.value<0||control.value>127||!Number.isInteger(control.channel)||control.channel<0||control.channel>15||typeof control.start!=='number'||!Number.isFinite(control.start)||control.start<0||control.start>100000)throw new Error('Ungültiger Controllerwert.');events.push({tick:Math.round(control.start*ppq),order:-1,bytes:[176+control.channel,control.controller,control.value]});}
     events.sort((a,b)=>a.tick-b.tick || a.order-b.order);
     const name=text.encode(String(track.name || `Spur ${i+1}`).slice(0,100));
-    const bytes=[0,255,3,...vlq(name.length),...name,0,192+channel,program];let previous=0;
+    const bytes=[0,255,3,...vlq(name.length),...name];if(!track.programs?.length)bytes.push(0,192+channel,program);let previous=0;
     for(const event of events){bytes.push(...vlq(event.tick-previous),...event.bytes);previous=event.tick;}
     bytes.push(0,255,47,0);tracks.push(chunk('MTrk',bytes));
   }
@@ -62,6 +69,14 @@ function renderAssistant(text,msg) {
     for(const link of text.querySelectorAll('a')){link.target='_blank';link.rel='noopener noreferrer';}
   } else text.textContent=display;
   if(msg.pending || msg.partial || msg.error)return;
+  const legacy=blocks.filter(b=>b.language==='python' && /(?:from\s+midiutil\s+import\s+MIDIFile|import\s+midiutil)\b/.test(b.body));
+  if(legacy.length && !blocks.some(b=>['midi','midi-json','file-json'].includes(b.language))){
+    const answer=document.createElement('details');const summary=document.createElement('summary');summary.textContent='Antwort und Quelltext anzeigen';answer.append(summary);while(text.firstChild)answer.append(text.firstChild);text.append(answer);
+    for(const [index,block] of legacy.entries()){
+      const card=document.createElement('div');card.className='file-card';const label=document.createElement('span');label.textContent='MIDI-Datei aus dieser Komposition';const button=document.createElement('button');button.className='touch-btn';button.textContent='MIDI speichern';button.onclick=()=>saveLegacyMidi(block.body,msg,index,button);card.append(label,button);text.insertBefore(card,answer);
+    }
+    return;
+  }
   const extensions={python:'py',javascript:'js',typescript:'ts',html:'html',css:'css',json:'json',csv:'csv',xml:'xml',musicxml:'musicxml',abc:'abc',lilypond:'ly',ly:'ly',markdown:'md',text:'txt',txt:'txt',lua:'lua',bash:'sh'};
   for(const [i,block] of blocks.entries()) {
     const card=document.createElement('div');card.className='file-card';
@@ -99,3 +114,22 @@ Wenn eine fertige Datei verlangt wird, liefere deren vollständige Daten in eine
 4. MIDI: das bereits beschriebene Notenschema mit zusätzlichem "kind":"midi". midi-json ist weiterhin erlaubt.
 Die App zeigt dazu echte Speichern-Buttons. Behaupte daher nicht, Downloads seien generell unmöglich, und erfinde keine Download-URLs. Die App führt keine frei erzeugten Python-/JavaScript-Programme aus. Audio-/Videodateien und Bilder kann sie nicht erzeugen. Mache bei einem dafür passenden Auftrag diese konkrete Grenze deutlich.
 `;
+
+function convertLegacyMidi(code) {
+  return new Promise((resolve,reject)=>{
+    const worker=new Worker('midi-worker.js');const timeout=setTimeout(()=>{worker.terminate();reject(new Error('Die MIDI-Umwandlung hat das Zeitlimit überschritten.'));},8000);
+    const finish=()=>{clearTimeout(timeout);worker.terminate();};
+    worker.onmessage=event=>{finish();if(event.data.error)reject(new Error(event.data.error));else resolve(event.data.files);};
+    worker.onerror=()=>{finish();reject(new Error('Die MIDI-Umwandlung konnte nicht geladen werden. Bitte mit Internetverbindung erneut versuchen.'));};
+    worker.postMessage({code});
+  });
+}
+async function saveLegacyMidi(code,msg,index,button) {
+  button.disabled=true;button.textContent='MIDI wird erstellt …';
+  try {
+    const files=msg.convertedMidi?.[index] || await convertLegacyMidi(code);
+    if(files.length!==1)throw new Error('Diese Antwort enthält mehrere MIDI-Ausgaben. Bitte eine einzelne Komposition anfordern.');
+    const score=files[0],bytes=buildMidi(score),filename=safeFilename(score.filename,'komposition.mid').replace(/(?:\.mid)?$/,'.mid');
+    msg.convertedMidi ??= {};msg.convertedMidi[index]=files;persist();download(filename,bytes,'audio/midi');status(filename+' wurde erzeugt.');
+  }catch(e){status('MIDI konnte nicht erzeugt werden: '+e.message,true);}finally{button.disabled=false;button.textContent='MIDI speichern';}
+}

@@ -1,4 +1,4 @@
-# KI Workspace 2.0.0
+# KI Workspace 2.1.0
 
 Stand: 03.10.2026. Installierbare Chat-App mit OpenRouter-Modellwahl, gespeicherten Chats, mehreren Anhängen und lokal erzeugten Ergebnisdateien.
 
@@ -8,7 +8,7 @@ Stand: 03.10.2026. Installierbare Chat-App mit OpenRouter-Modellwahl, gespeicher
 2. In den Einstellungen den **OpenRouter API-Schlüssel** speichern. „Verbindung prüfen“ fragt nur Schlüsselmetadaten ab; dabei wird keine kostenpflichtige Modellantwort angefordert.
 3. Anbieter und Modell wählen, eine Frage stellen und bei Bedarf Dateien über die Büroklammer anhängen.
 4. Für ein Ergebnis als Datei den Dateityp im Auftrag nennen, beispielsweise „Bearbeite diesen Text und gib mir eine Word-Datei“ oder „Ändere B2 in der Excel-Datei und gib mir die bearbeitete Datei“.
-5. Der Speichern-Button unter der Antwort erzeugt die fertige Datei auf dem Gerät. Die App führt vom Modell vorgeschlagene Python-/JavaScript-Programme nicht aus.
+5. Der Speichern-Button unter der Antwort erzeugt die fertige Datei auf dem Gerät. Neue MIDI-Antworten verwenden das Notenformat der App. Für ältere Antworten mit MIDIUtil-Code zeigt die App ebenfalls „MIDI speichern“: Ein begrenzter lokaler Konverter verarbeitet die Noten, ohne Python-Installation und ohne weiteren KI-Aufruf. Andere Programme oder zusätzliche Bibliotheken werden nicht unterstützt.
 
 Android/Computer: Im Browsermenü „App installieren“. iPad/iPhone: Safari → „Teilen“ → „Zum Home-Bildschirm“. Der Manifest-Link sendet für die private Veröffentlichung die Anmeldung mit (`crossorigin="use-credentials"`).
 
@@ -77,3 +77,9 @@ Dateifunktionen werden über geschlossene Codeblöcke `file-json` beschrieben: `
 - JavaScript-Syntax und Dateiverweise geprüft. Neue kostenpflichtige Modellantworten sowie die Bedienung/Installation auf echten Geräten sind noch ungetestet.
 
 Dokumentation: https://openrouter.ai/docs/quickstart
+
+## MIDIUtil-Kompatibilität (2.1.0)
+
+Gespeicherte Antworten mit einem vollständigen Python-Codeblock und `from midiutil import MIDIFile` erhalten einen MIDI-Download-Button oberhalb des eingeklappten Quelltexts. Unterstützt: Noten, mehrere Spuren, Schleifen, Akkorde, Tempo-/Instrumentwechsel, Controller und die anfängliche Taktart. Der Konverter läuft in einem zeitlich begrenzten Worker mit MIDIUtil-Adapter und virtueller Ausgabedatei. Unbekannte Methoden oder Zusatzmodule führen zu einer verständlichen Fehlermeldung. Der konkrete alte Code muss vollständig im Chat vorliegen.
+
+Skulpt ist unter seiner MIT-Lizenz in `vendor/skulpt` enthalten. Tests prüfen die erzeugten MIDI-Ereignisse und den Download-Button, ohne kostenpflichtigen KI-Aufruf.
