@@ -2,8 +2,14 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Gemini Workspace (OpenRouter)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>KI Workspace</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <meta name="theme-color" content="#1a73e8">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="KI Workspace">
   <style>
     :root {
       --bg: #f8fafc;
@@ -235,6 +241,40 @@
       font-size: 13px;
       background: #f8fafc;
     }
+
+    #workspace { min-width:0; }
+    .brand small { font-size:12px; color:var(--muted); }
+    header { height:auto; min-height:70px; padding:12px; align-items:flex-start; }
+    .header-left { overflow:visible; flex-wrap:wrap; white-space:normal; min-width:0; gap:8px; }
+    select.ctrl-select { border-radius:8px; font-size:16px; max-width:320px; min-height:40px; min-width:0; }
+    #sel-model { flex:1; }
+    .touch-btn, .btn-send { font-size:14px; min-height:40px; }
+    .bubble-user, .bubble-bot, textarea#user-text { font-size:16px; }
+    textarea#user-text { min-height:44px; }
+    #status { padding:8px 16px; font-size:14px; background:#f1f5f9; color:#334155; overflow-wrap:anywhere; }
+    #status.error { color:#9f1239; background:#fff1f2; }
+    #status:empty { display:none; }
+    .modal-card { max-height:90dvh; overflow:auto; }
+    .modal-card input, .modal-card textarea { font-size:16px; }
+    .hint { font-size:14px; color:var(--muted); line-height:1.5; margin:8px 0; }
+    .chat-item { width:100%; margin-bottom:8px; overflow-wrap:anywhere; }
+    .chat-item.active { border-color:var(--primary); color:var(--primary); }
+    .msg-meta { font-size:13px; color:var(--muted); margin-bottom:6px; }
+    .bubble-bot.error { color:#9f1239; }
+    .bubble-bot img, .bubble-user img { max-width:100%; max-height:260px; display:block; margin-top:8px; }
+    #key-result { font-size:14px; white-space:pre-wrap; }
+    button:focus-visible, select:focus-visible, textarea:focus-visible, input:focus-visible { outline:3px solid #60a5fa; outline-offset:2px; }
+    [hidden] { display:none !important; }
+    @media (max-width:650px) {
+      .brand { flex:1; font-size:16px; }
+      #sel-provider { flex-basis:28%; max-width:35%; }
+      #sel-model { flex-basis:48%; max-width:calc(65% - 55px); }
+      #chat-scroll { padding:14px; }
+      .input-box { padding:6px; border-radius:12px; }
+      .input-row { flex-wrap:wrap; gap:6px; }
+      textarea#user-text { min-width:50%; }
+      header { padding-top:max(10px, env(safe-area-inset-top)); }
+    }
   </style>
 </head>
 <body>
@@ -249,7 +289,8 @@
       <button class="touch-btn" onclick="closeSidebar()">✕</button>
     </div>
     <button class="btn-side" onclick="newChat()">+ Neuer Chat</button>
-    <div style="flex:1;"></div>
+    <div id="chat-list" style="flex:1;overflow:auto" aria-label="Gespeicherte Chats"></div>
+<button id="install-button" class="btn-side" onclick="installApp()">App installieren</button>
     <button class="btn-side" onclick="exportMarkdown()">Markdown-Export</button>
     <button class="btn-side" onclick="exportJson()">JSON-Backup</button>
     <button class="btn-side" style="color:#dc2626;" onclick="clearHistory()">Verlauf leeren</button>
@@ -259,19 +300,20 @@
   <div id="workspace">
     <header>
       <div class="header-left">
-        <button class="touch-btn" onclick="openSidebar()">☰</button>
-        <span class="brand">Gemini</span>
+        <button class="touch-btn" aria-label="Menü öffnen" onclick="openSidebar()">☰</button>
+        <span class="brand">KI Workspace <small>1.0.0</small></span>
 
         <!-- Dropdowns -->
-        <select id="sel-provider" class="ctrl-select" onchange="filterModels()"></select>
-        <select id="sel-model" class="ctrl-select" onchange="saveModelChoice()"></select>
+        <select aria-label="Anbieter" id="sel-provider" class="ctrl-select" onchange="filterModels(true)"></select>
+        <select aria-label="Modell" id="sel-model" class="ctrl-select" onchange="saveModelChoice()"></select>
 
-        <button class="touch-btn" onclick="fetchLiveModels()" title="Online aktualisieren">↻</button>
+        <button class="touch-btn" onclick="fetchLiveModels()" title="Modellliste aktualisieren" aria-label="Modellliste aktualisieren">↻</button>
       </div>
 
-      <button class="touch-btn" onclick="openModal()">⚙</button>
+      <button class="touch-btn" aria-label="Einstellungen" onclick="openModal()">⚙</button>
     </header>
 
+<div id="status" role="status" aria-live="polite"></div>
     <!-- CHAT VERLAUF -->
     <main id="chat-scroll">
       <div class="chat-box" id="chat-container">
@@ -291,8 +333,10 @@
         </div>
         <div class="input-row">
           <input type="file" id="file-picker" style="display:none;" onchange="onFilePicked(event)">
-          <button class="touch-btn" onclick="document.getElementById('file-picker').click()">📎</button>
-          <textarea id="user-text" placeholder="Nachricht eingeben..." rows="1" oninput="autoResize(this)"></textarea>
+          <button class="touch-btn" aria-label="Bild oder Textdatei anhängen" onclick="document.getElementById('file-picker').click()">📎</button>
+          <textarea aria-label="Nachricht" id="user-text" placeholder="Nachricht eingeben..." rows="1" oninput="autoResize(this)"></textarea>
+          <button id="btn-stop" class="touch-btn" onclick="stopRequest()" hidden>Stop</button>
+          <button id="btn-retry" class="touch-btn" onclick="retryMessage()" hidden>Erneut versuchen</button>
           <button id="btn-send" class="btn-send" onclick="sendMessage()">Senden</button>
         </div>
       </div>
@@ -301,267 +345,26 @@
 
   <!-- EINSTELLUNGEN MODAL -->
   <div id="settings-modal">
-    <div class="modal-card">
-      <h3 style="font-size:15px;">Einstellungen</h3>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <h3 id="settings-title">Einstellungen</h3>
       <div>
-        <label style="font-size:12px; color:var(--muted); display:block; margin-bottom:4px;">OpenRouter API-Schlüssel</label>
-        <input type="password" id="input-key" placeholder="sk-or-v1-...">
+        <label for="input-key" style="font-size:14px; color:var(--muted); display:block; margin-bottom:4px;">OpenRouter API-Schlüssel</label>
+        <input type="password" id="input-key" placeholder="sk-or-v1-..." autocomplete="off">
+<p class="hint">Der Schlüssel wird auf diesem Gerät gespeichert und nur direkt an OpenRouter gesendet.</p>
+<button class="touch-btn" onclick="testConnection()">Verbindung prüfen</button>
+<p id="key-result" role="status"></p>
       </div>
       <div>
-        <label style="font-size:12px; color:var(--muted); display:block; margin-bottom:4px;">Dauerhaftes Gedächtnis (System Prompt)</label>
+        <label for="input-mem" style="font-size:14px; color:var(--muted); display:block; margin-bottom:4px;">Zusätzliche Angaben an die KI</label>
         <textarea id="input-mem" rows="4" placeholder="Instruktionen für die KI..."></textarea>
       </div>
       <div style="display:flex; justify-content:flex-end;">
+        <button class="touch-btn" onclick="cancelModal()">Schließen</button>
         <button class="touch-btn" style="background:var(--primary); color:#fff; border:none;" onclick="closeModal()">Speichern</button>
       </div>
     </div>
   </div>
 
-  <script>
-    const memStore = {};
-    function setStorage(k, v) {
-      try { localStorage.setItem(k, v); } catch(e) { memStore[k] = v; }
-    }
-    function getStorage(k) {
-      try { return localStorage.getItem(k) || memStore[k] || ''; } catch(e) { return memStore[k] || ''; }
-    }
-
-    const DEFAULT_MODELS = [
-      { id: "google/gemini-2.5-flash", name: "Gemini 2.5 Flash", provider: "google" },
-      { id: "google/gemini-2.0-flash-exp:free", name: "Gemini 2.0 Flash (Free)", provider: "google" },
-      { id: "anthropic/claude-3.5-sonnet", name: "Claude 3.5 Sonnet", provider: "anthropic" },
-      { id: "anthropic/claude-3.5-haiku", name: "Claude 3.5 Haiku", provider: "anthropic" },
-      { id: "openai/gpt-4o", name: "GPT-4o", provider: "openai" },
-      { id: "openai/gpt-4o-mini", name: "GPT-4o Mini", provider: "openai" },
-      { id: "deepseek/deepseek-chat", name: "DeepSeek V3", provider: "deepseek" },
-      { id: "deepseek/deepseek-r1", name: "DeepSeek R1", provider: "deepseek" },
-      { id: "meta-llama/llama-3.3-70b-instruct", name: "Llama 3.3 70B", provider: "meta-llama" },
-      { id: "mistralai/mistral-large-2407", name: "Mistral Large", provider: "mistralai" }
-    ];
-
-    let modelCatalog = DEFAULT_MODELS;
-    let chatHistory = [];
-    let currentAttachment = null;
-
-    function openSidebar() {
-      document.getElementById('sidebar').classList.add('open');
-      document.getElementById('side-backdrop').classList.add('open');
-    }
-    function closeSidebar() {
-      document.getElementById('sidebar').classList.remove('open');
-      document.getElementById('side-backdrop').classList.remove('open');
-    }
-
-    function openModal() {
-      document.getElementById('input-key').value = getStorage('or_key');
-      document.getElementById('input-mem').value = getStorage('or_mem');
-      document.getElementById('settings-modal').style.display = 'flex';
-    }
-    function closeModal() {
-      setStorage('or_key', document.getElementById('input-key').value.trim());
-      setStorage('or_mem', document.getElementById('input-mem').value.trim());
-      document.getElementById('settings-modal').style.display = 'none';
-    }
-
-    function setupDropdowns(list) {
-      modelCatalog = list;
-      const providers = [...new Set(modelCatalog.map(m => m.provider))].sort();
-      const provSel = document.getElementById('sel-provider');
-      provSel.innerHTML = '';
-      providers.forEach(p => {
-        const opt = document.createElement('option');
-        opt.value = p;
-        opt.textContent = p.toUpperCase();
-        provSel.appendChild(opt);
-      });
-      provSel.value = providers.includes('google') ? 'google' : providers[0];
-      filterModels();
-    }
-
-    function filterModels() {
-      const activeProv = document.getElementById('sel-provider').value;
-      const modelSel = document.getElementById('sel-model');
-      modelSel.innerHTML = '';
-      const filtered = modelCatalog.filter(m => m.provider === activeProv);
-      filtered.forEach(m => {
-        const opt = document.createElement('option');
-        opt.value = m.id;
-        opt.textContent = m.name;
-        modelSel.appendChild(opt);
-      });
-      saveModelChoice();
-    }
-
-    function saveModelChoice() {
-      setStorage('or_model', document.getElementById('sel-model').value);
-    }
-
-    async function fetchLiveModels() {
-      try {
-        const res = await fetch('https://openrouter.ai/api/v1/models');
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const data = await res.json();
-        if (data.data) {
-          const list = data.data.map(item => ({
-            id: item.id,
-            name: item.name || item.id,
-            provider: item.id.split('/')[0] || 'other'
-          }));
-          setupDropdowns(list);
-          alert(list.length + ' Modelle aktualisiert!');
-        }
-      } catch (err) {
-        alert('Abruf fehlgeschlagen: ' + err.message);
-      }
-    }
-
-    function onFilePicked(e) {
-      const f = e.target.files[0];
-      if (!f) return;
-      const reader = new FileReader();
-      if (f.type.startsWith('image/')) {
-        reader.onload = () => {
-          currentAttachment = { type: 'image', name: f.name, data: reader.result };
-          showFile(f.name);
-        };
-        reader.readAsDataURL(f);
-      } else {
-        reader.onload = () => {
-          currentAttachment = { type: 'text', name: f.name, data: reader.result };
-          showFile(f.name);
-        };
-        reader.readAsText(f);
-      }
-    }
-    function showFile(name) {
-      document.getElementById('file-name').textContent = name;
-      document.getElementById('file-indicator').style.display = 'block';
-    }
-    function removeFile() {
-      currentAttachment = null;
-      document.getElementById('file-picker').value = '';
-      document.getElementById('file-indicator').style.display = 'none';
-    }
-
-    function autoResize(textarea) {
-      textarea.style.height = 'auto';
-      textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
-    }
-
-    function renderChat() {
-      const c = document.getElementById('chat-container');
-      c.innerHTML = '';
-      if (chatHistory.length === 0) {
-        c.innerHTML = `
-          <div id="hero" style="margin-top: 10vh; text-align: left;">
-            <h2 style="font-size: 2rem; font-weight: 600; background: linear-gradient(90deg, #1a73e8, #9b72cb, #d96570); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Hallo, Wilhelm</h2>
-            <p style="font-size: 1.5rem; color: #94a3b8; font-weight: 500;">Womit kann ich heute helfen?</p>
-          </div>`;
-        return;
-      }
-
-      chatHistory.forEach(msg => {
-        const row = document.createElement('div');
-        row.className = 'msg-row ' + (msg.role === 'user' ? 'msg-user' : '');
-        const bubble = document.createElement('div');
-        bubble.className = msg.role === 'user' ? 'bubble-user' : 'bubble-bot';
-        bubble.textContent = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
-        row.appendChild(bubble);
-        c.appendChild(row);
-      });
-      document.getElementById('chat-scroll').scrollTop = document.getElementById('chat-scroll').scrollHeight;
-    }
-
-    async function sendMessage() {
-      const textEl = document.getElementById('user-text');
-      const text = textEl.value.trim();
-      const apiKey = getStorage('or_key');
-      const model = document.getElementById('sel-model').value;
-
-      if (!apiKey) {
-        openModal();
-        alert('Bitte tragen Sie zuerst Ihren OpenRouter API-Schlüssel ein.');
-        return;
-      }
-      if (!text && !currentAttachment) return;
-
-      document.getElementById('btn-send').disabled = true;
-
-      let userMsg = text;
-      if (currentAttachment) {
-        if (currentAttachment.type === 'text') {
-          userMsg = `[Datei: ${currentAttachment.name}]\n\`\`\`\n${currentAttachment.data}\n\`\`\`\n\n${text}`;
-        } else {
-          userMsg = [
-            { type: 'text', text: text || '(Bild)' },
-            { type: 'image_url', image_url: { url: currentAttachment.data } }
-          ];
-        }
-      }
-
-      chatHistory.push({ role: 'user', content: userMsg });
-      renderChat();
-
-      textEl.value = '';
-      textEl.style.height = '32px';
-      removeFile();
-
-      const botMsg = { role: 'assistant', content: '...' };
-      chatHistory.push(botMsg);
-      renderChat();
-
-      const payload = [];
-      const mem = getStorage('or_mem');
-      if (mem.trim()) payload.push({ role: 'system', content: mem.trim() });
-      payload.push(...chatHistory.slice(0, -1));
-
-      try {
-        const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': 'Bearer ' + apiKey,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ model: model, messages: payload })
-        });
-
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.error?.message || 'HTTP Status ' + res.status);
-        }
-
-        const data = await res.json();
-        botMsg.content = data.choices?.[0]?.message?.content || '(Keine Antwort)';
-      } catch (err) {
-        botMsg.content = 'Fehler: ' + err.message;
-      } finally {
-        document.getElementById('btn-send').disabled = false;
-        renderChat();
-      }
-    }
-
-    function newChat() { chatHistory = []; renderChat(); closeSidebar(); }
-    function clearHistory() { chatHistory = []; renderChat(); closeSidebar(); }
-    function exportMarkdown() {
-      if (chatHistory.length === 0) return alert('Verlauf leer.');
-      let md = `# Chat Export\n\n`;
-      chatHistory.forEach(m => md += `### ${m.role}\n${typeof m.content === 'string' ? m.content : '[Inhalt]'}\n\n`);
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(new Blob([md], { type: 'text/markdown' }));
-      a.download = 'chat.md';
-      a.click();
-      closeSidebar();
-    }
-    function exportJson() {
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(new Blob([JSON.stringify(chatHistory, null, 2)], { type: 'application/json' }));
-      a.download = 'chat.json';
-      a.click();
-      closeSidebar();
-    }
-
-    // Start
-    setupDropdowns(DEFAULT_MODELS);
-  </script>
+  <script src="app.js" defer></script>
 </body>
 </html>
