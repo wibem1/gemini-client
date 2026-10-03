@@ -1,5 +1,5 @@
 'use strict';
-const VERSION = '2.1.0';
+const VERSION = '2.2.0';
 const $ = id => document.getElementById(id);
 const fallbackStore = {};
 let storageWarning = false;
@@ -65,8 +65,9 @@ async function testConnection() {
   } catch(e) { $('key-result').textContent=e.name==='TimeoutError'?'Zeitüberschreitung beim Verbindungsaufbau.':e.message; }
 }
 function setupDropdowns(list) {
-  const wanted=getStorage('or_model') || $('sel-model').value;
-  modelCatalog=list;
+  if(list)modelCatalog=list;
+  list=availableModels();
+  const wanted=getStorage(modelPreference());
   const providers=[...new Set(list.map(m=>m.provider))].sort();
   const select=$('sel-provider');select.replaceChildren();
   for(const p of providers) { const opt=new Option(p,p); select.add(opt); }
@@ -74,22 +75,22 @@ function setupDropdowns(list) {
   select.value=model?.provider || (providers.includes('google')?'google':providers[0] || '');
   filterModels(false,wanted);
 }
-function filterModels(userChange=false,wanted=getStorage('or_model')) {
+function filterModels(userChange=false,wanted=getStorage(modelPreference())) {
   const select=$('sel-model');select.replaceChildren();
-  for(const m of modelCatalog.filter(m=>m.provider===$('sel-provider').value).sort((a,b)=>a.name.localeCompare(b.name))) select.add(new Option(m.name,m.id));
+  for(const m of availableModels().filter(m=>m.provider===$('sel-provider').value).sort((a,b)=>a.name.localeCompare(b.name))) select.add(new Option(m.name+(m.inputs?.includes('image')?' · Bildeingabe':''),m.id));
   if([...select.options].some(o=>o.value===wanted)) select.value=wanted;
   if(userChange || !wanted) saveModelChoice();
   updateModelDetails();
 }
-function saveModelChoice() { if($('sel-model').value) setStorage('or_model',$('sel-model').value);updateModelDetails(); }
+function saveModelChoice() { if($('sel-model').value) setStorage(modelPreference(),$('sel-model').value);updateModelDetails(); }
 async function fetchLiveModels(quiet=false) {
   try {
     const r=await request('models',{signal:AbortSignal.timeout(20000)});const d=await r.json();
     if(!Array.isArray(d.data)) throw new Error('OpenRouter hat keine Modellliste geliefert.');
-    const list=d.data.filter(m=>(m.architecture?.output_modalities || ['text']).includes('text')).map(m=>({id:m.id,name:m.name || m.id,provider:m.id.split('/')[0],inputs:m.architecture?.input_modalities || ['text'],context_length:m.context_length,pricing:m.pricing}));
+    const list=d.data.filter(m=>(m.architecture?.output_modalities || ['text']).includes('text')).map(m=>({id:m.id,name:m.name || m.id,provider:m.id.split('/')[0],inputs:m.architecture?.input_modalities || ['text'],outputs:m.architecture?.output_modalities || ['text'],context_length:m.context_length,pricing:m.pricing}));
     if(!list.length) throw new Error('Keine Chatmodelle gefunden.');
     setStorage('or_catalog',JSON.stringify(list));setupDropdowns(list);
-    if(!busy) status(`${list.length} Chatmodelle von OpenRouter geladen.`);
+    if(!busy && !imageMode()) status(`${list.length} Chatmodelle von OpenRouter geladen.`);
   } catch(e) {
     if(!busy) status('Modellliste konnte nicht aktualisiert werden. '+e.message+(modelCatalog.length?' Die gespeicherte Liste bleibt verfügbar.':''),true);
   }
@@ -137,8 +138,8 @@ function renderChatList() {
 function newChat() { if(busy || picking)return;createChat();persist();renderChat();removeFile();$('user-text').value='';autoResize($('user-text'));closeSidebar();retryAvailable=false;$('btn-retry').hidden=true; }
 function clearHistory() { if(busy || picking)return;if(!confirm('Alle gespeicherten Chats und Anhangsdateien auf diesem Gerät löschen?'))return;chats=[];createChat();persist();renderChat();removeFile();fileOperation('readwrite',store=>store.clear()).catch(e=>status(e.message,true));closeSidebar(); }
 function updateModelDetails() {
-  const model=modelCatalog.find(m=>m.id===$('sel-model').value);if(!model)return;
-  const detail=[model.inputs?.includes('image')?'Text und Bilder':'Text'];
+  const model=availableModels().find(m=>m.id===$('sel-model').value);if(!model)return;
+  const detail=[model.inputs?.includes('image')?'Eingabe: Text und Bilder':'Eingabe: Text',imageMode()?'Ausgabe: Bilder':'Ausgabe: Text'];
   if(model.context_length)detail.push('Kontext: '+Number(model.context_length).toLocaleString('de-DE')+' Tokens');
   if(model.pricing?.prompt!==undefined && model.pricing?.completion!==undefined){const input=Number(model.pricing.prompt)*1e6,output=Number(model.pricing.completion)*1e6;if(Number.isFinite(input)&&Number.isFinite(output))detail.push(`pro 1 Mio. Tokens: $${input.toFixed(2)} Eingabe / $${output.toFixed(2)} Ausgabe`);}
   $('model-details').textContent=detail.join(' · ');
@@ -149,7 +150,7 @@ function appendSources(container,msg) {
  if(msg.usage){const info=document.createElement('div');info.className='msg-meta';const parts=[];if(msg.usage.total_tokens)parts.push(Number(msg.usage.total_tokens).toLocaleString('de-DE')+' Tokens');if(typeof msg.usage.cost==='number')parts.push('$'+msg.usage.cost.toFixed(5));info.textContent=parts.join(' · ');container.append(info);}
 }
 function setBusy(value) {
-  busy=value;for(const id of ['btn-send','sel-provider','sel-model','file-picker']) $(id).disabled=value;
+  busy=value;for(const id of ['btn-send','sel-provider','sel-model','file-picker','work-mode']) $(id).disabled=value;
   $('btn-stop').hidden=!value;$('btn-retry').hidden=value || !retryAvailable;renderChatList();
 }
 function stopRequest() { controller?.abort(); }
@@ -164,6 +165,7 @@ async function consumeStream(response,onDelta,onMeta=()=>{}) {
     if(event.error) throw new Error(errorMessage(event.error.code,event.error.message));
     onMeta(event);
     const choice=event.choices?.[0];
+    if(choice?.finish_reason==='length')throw new Error('Das Modell hat die Antwort wegen seiner Längenbegrenzung abgebrochen.');
     if(choice?.finish_reason==='error') throw new Error('OpenRouter hat die Generierung mit einem Fehler beendet.');
     if(typeof choice?.delta?.content==='string')onDelta(choice.delta.content,event.model);
   }
@@ -184,7 +186,8 @@ async function sendMessage(retry=false) {
   if(!model) { status('Bitte zuerst die Modellliste laden.',true);return; }
   const chat=currentChat();
   const imageHistory=chat.messages.some(m=>!m.error && ((Array.isArray(m.content) && m.content.some(p=>p.type==='image_url')) || m.attachments?.some(a=>a.hasImages)));
-  if((imageHistory || pendingAttachments.some(a=>a.hasImages)) && !modelCatalog.find(m=>m.id===model)?.inputs?.includes('image')) { status('Dieser Auftrag enthält Bilder oder eingescannte PDF-Seiten. Bitte ein Modell mit Bildunterstützung wählen.',true);return; }
+  if(!imageMode() && (imageHistory || pendingAttachments.some(a=>a.hasImages)) && !modelCatalog.find(m=>m.id===model)?.inputs?.includes('image')) { status('Dieser Auftrag enthält Bilder oder eingescannte PDF-Seiten. Bitte ein Modell mit Bildunterstützung wählen.',true);return; }
+  if(imageMode() && pendingAttachments.some(a=>a.category!=='image')){status('Für die Bilderzeugung bitte Bilder als Referenz anhängen. Dokumente können im Chat besprochen werden.',true);return;}
   if(!retry) {
     const text=$('user-text').value.trim();if(!text && !pendingAttachments.length)return;
     const attachments=pendingAttachments.map(a=>({...a}));
@@ -198,7 +201,9 @@ async function sendMessage(retry=false) {
   controller=new AbortController();retryAvailable=false;setBusy(true);renderChat();persist();status('Dateien und Auftrag werden vorbereitet …');
   const timeout=setTimeout(()=>controller?.abort('timeout'),300000);
   try {
-    const messages=await Promise.all(chat.messages.filter(m=>!m.error && !m.partial && !m.pending).map(messageForAPI));
+    if(imageMode()){await generateImage(chat,bot,model,key,controller.signal);status('Bild fertig. Du kannst es speichern oder weiter bearbeiten.');return;}
+    const history=chat.messages.filter(m=>!m.error && !m.partial && !m.pending);
+    const messages=await prepareChatMessages(history);
     if(controller.signal.aborted)throw new DOMException('Abgebrochen','AbortError');
     const textLength=messages.reduce((sum,m)=>sum+contentText(m.content).length,0);const context=modelCatalog.find(m=>m.id===model)?.context_length;
     if(context && textLength>context*3)throw new Error('Dieser Chat mit seinen Dateien ist für den Kontext des Modells zu groß. Bitte ein Modell mit größerem Kontext oder einen neuen Chat mit einem Ausschnitt verwenden. Es wurde nichts gekürzt.');
@@ -209,14 +214,14 @@ async function sendMessage(retry=false) {
       await consumeStream(response,(delta,actualModel)=>{bot.content+=delta;if(actualModel)bot.model=actualModel;renderChat();},event=>{if(event.usage)bot.usage=event.usage;const annotations=event.choices?.[0]?.delta?.annotations || event.choices?.[0]?.message?.annotations;if(annotations)bot.annotations=[...(bot.annotations || []),...annotations];});
     } else {
       const data=await response.json();if(data.error)throw new Error(errorMessage(data.error.code,data.error.message));
-      bot.content=contentText(data.choices?.[0]?.message?.content);bot.model=data.model || model;bot.usage=data.usage;bot.annotations=data.choices?.[0]?.message?.annotations;
+      bot.content=contentText(data.choices?.[0]?.message?.content);bot.model=data.model || model;bot.usage=data.usage;bot.annotations=data.choices?.[0]?.message?.annotations;await storeOutputImages(bot,data.choices?.[0]?.message?.images || []);if(data.choices?.[0]?.finish_reason==='length')throw new Error('Das Modell hat die Antwort wegen seiner Längenbegrenzung abgebrochen.');
     }
-    if(!bot.content)throw new Error('OpenRouter lieferte keine Textantwort. Bitte ein anderes Chatmodell wählen.');
+    if(!bot.content && !bot.attachments?.length)throw new Error('OpenRouter lieferte keine Textantwort. Bitte ein anderes Chatmodell wählen.');
     status('Antwort vollständig.');
   } catch(e) {
     const aborted=controller.signal.aborted;
     const detail=aborted?(controller.signal.reason==='timeout'?'Zeitlimit von fünf Minuten erreicht.':'Anfrage gestoppt.'):e.message;
-    if(bot.content) { bot.partial=true;status(detail+' Die bisherige Antwort bleibt erhalten.',true); }
+    if(bot.content || bot.attachments?.length) { bot.partial=true;status(detail+' Die bisherige Antwort bleibt erhalten.',true); }
     else { bot.error=true;bot.content=detail;status(detail,true); }
     retryAvailable=true;
   } finally { clearTimeout(timeout);bot.pending=false;controller=null;persist();setBusy(false);renderChat(); }
@@ -239,13 +244,15 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){cancelModal();close
 window.addEventListener('pagehide',persist);
 // Recover an interrupted session without sending the incomplete answer back to the model.
 for(const chat of chats)for(const m of chat.messages)if(m.pending){m.pending=false;if(m.content)m.partial=true;else{m.error=true;m.content='Die vorherige Anfrage wurde beim Schließen unterbrochen.';}}
-$('web-search').checked=getStorage('or_web')==='1';
+imageCatalog=readJSON('or_image_catalog',[]);if(!Array.isArray(imageCatalog))imageCatalog=[];
+$('work-mode').value=getStorage('or_mode')==='image'?'image':'chat';
+$('web-search').checked=getStorage('or_web')==='1';$('web-search').disabled=imageMode();enableImageInput();
 $('user-text').value=getStorage('or_draft');autoResize($('user-text'));
 pendingAttachments=readJSON('or_pending',[]);if(!Array.isArray(pendingAttachments))pendingAttachments=[];renderAttachments();
 renderChat();persist();
 (async()=>{
   if(!modelCatalog.length)try { const r=await fetch('models.json');if(!r.ok)throw new Error();setupDropdowns(await r.json()); } catch { status('Keine Modellliste verfügbar. Bitte Internetverbindung prüfen.',true); }
   else setupDropdowns(modelCatalog);
-  await fetchLiveModels(true);
+  await Promise.all([fetchLiveModels(true),fetchImageModels()]);
 })();
 if('serviceWorker' in navigator && location.protocol!=='file:')navigator.serviceWorker.register('sw.js').catch(e=>status('Die Offline-Funktion konnte nicht aktiviert werden: '+e.message,true));

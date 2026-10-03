@@ -1,4 +1,4 @@
-# KI Workspace 2.1.0
+# KI Workspace 2.2.0
 
 Stand: 03.10.2026. Installierbare Chat-App mit OpenRouter-Modellwahl, gespeicherten Chats, mehreren Anhängen und lokal erzeugten Ergebnisdateien.
 
@@ -53,7 +53,7 @@ Der Schlüssel wird ausschließlich direkt an OpenRouter gesendet. Der Service W
 
 ## Was diese Version noch nicht leistet
 
-Kein Sprachmodus, keine Bild-/Audio-/Videogenerierung, keine freie Python-Ausführung und keine geräteübergreifende Cloud-Synchronisation. Sie bietet den vollständigen Dateiablauf für die oben beschriebenen Formate, aber noch nicht jede Funktion der ChatGPT-App. Die Modelle müssen das vereinbarte Ausgabeformat für Ergebnisdateien einhalten. Die technische Dateiprüfung beurteilt nicht die inhaltliche oder musikalische Qualität.
+Kein Sprachmodus, keine Audio-/Videogenerierung, keine freie Python-Ausführung und keine geräteübergreifende Cloud-Synchronisation. Sie bietet den vollständigen Dateiablauf für die oben beschriebenen Formate, aber noch nicht jede Funktion der ChatGPT-App. Die Modelle müssen das vereinbarte Ausgabeformat für Ergebnisdateien einhalten. Die technische Dateiprüfung beurteilt nicht die inhaltliche oder musikalische Qualität.
 
 ## Entwickler
 
@@ -83,3 +83,14 @@ Dokumentation: https://openrouter.ai/docs/quickstart
 Gespeicherte Antworten mit einem vollständigen Python-Codeblock und `from midiutil import MIDIFile` erhalten einen MIDI-Download-Button oberhalb des eingeklappten Quelltexts. Unterstützt: Noten, mehrere Spuren, Schleifen, Akkorde, Tempo-/Instrumentwechsel, Controller und die anfängliche Taktart. Der Konverter läuft in einem zeitlich begrenzten Worker mit MIDIUtil-Adapter und virtueller Ausgabedatei. Unbekannte Methoden oder Zusatzmodule führen zu einer verständlichen Fehlermeldung. Der konkrete alte Code muss vollständig im Chat vorliegen.
 
 Skulpt ist unter seiner MIT-Lizenz in `vendor/skulpt` enthalten. Tests prüfen die erzeugten MIDI-Ereignisse und den Download-Button, ohne kostenpflichtigen KI-Aufruf.
+
+## Bilder (2.2.0, 03.10.2026)
+
+- **Chat / Bilder besprechen:** Mehrere PNG-, JPEG-, WebP- oder GIF-Bilder per Büroklammer, Zwischenablage oder Drag-and-drop anhängen. Die Originaldateien werden ohne Verkleinerung an ein Modell mit Bildeingabe übertragen. Vorschaubilder vor und nach dem Senden.
+- **Bild erzeugen / bearbeiten:** Eigene Modellliste aus OpenRouters Image Models API. Auftrag eingeben, optional Referenzbilder anhängen, senden. Die App verwendet die dedizierte `/api/v1/images`-Schnittstelle mit `prompt` und `input_references`. Es wird das ausgewählte Bildmodell verwendet. Die Bilderzeugung benötigt OpenRouter-Guthaben; Websuche wird dabei nicht verwendet.
+- Ergebnisbilder: Vorschau, große Ansicht, **Bild speichern** in der gelieferten Auflösung und **Als Anhang verwenden** für weitere Aufträge oder Modellwechsel. Bilder werden als Originaldateien in IndexedDB gespeichert und sind im ZIP-Backup enthalten.
+- Ein Folgeauftrag zur Bildbearbeitung ohne neue Referenz verwendet die Bilder des letzten Bildturns. Im Textchat wird das letzte erzeugte Bild beim Folgeauftrag als Bildeingabe mitgegeben. Andere Bilder können explizit wieder angehängt werden.
+- Rasterausgaben PNG/JPEG/WebP/GIF. SVG-/Vektor-Ausgaben, HEIC und weitere Sonderformate sind derzeit nicht unterstützt. Referenzanzahl und Bearbeitungsfähigkeit hängen vom gewählten Bildmodell ab; die gemeldeten Modellgrenzen werden geprüft.
+- Technische Regressionstests prüfen die vollständige Bildkette mit simulierten API-Antworten, echter lokaler Binärspeicherung und Datei-Download. Keine kostenpflichtige Generierung und kein Test auf einem echten Android-/iPad-Gerät innerhalb dieser Entwicklungsprüfung.
+
+Dies stellt die Bildkommunikation bereit, bedeutet aber noch keine vollständige Gleichheit mit ChatGPT: Audio/Video, allgemeine Programmausführung und weitere oben genannte Funktionen fehlen weiterhin.

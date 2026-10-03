@@ -306,6 +306,18 @@
     .capabilities p { margin-top:8px; }
     .sources { font-size:14px; margin-top:12px; }
     .sources a { display:block; margin:4px 0; overflow-wrap:anywhere; }
+  .image-card {margin:12px 0;max-width:600px;}
+    .image-open {display:block;border:0;background:transparent;padding:0;cursor:zoom-in;max-width:100%;}
+    .image-open img {max-height:480px;border-radius:12px;}
+    .image-card figcaption {font-size:14px;color:var(--text-secondary);overflow-wrap:anywhere;margin:6px 0;}
+    .image-actions {display:flex;gap:8px;flex-wrap:wrap;}
+    .attachment-thumbnail {width:48px;height:48px;object-fit:cover;border-radius:6px;}
+    #image-viewer {width:min(95vw,1200px);max-height:95dvh;padding:12px;border:0;border-radius:12px;}
+    #image-viewer::backdrop {background:#000b;}
+    .image-view-header {display:flex;gap:12px;justify-content:space-between;align-items:center;margin-bottom:12px;}
+    #image-full {display:block;max-width:100%;max-height:80dvh;margin:auto;object-fit:contain;}
+    #work-mode {max-width:100%;font-size:16px;flex-basis:100%;order:1;}
+    #sel-provider,#sel-model {order:2;}
   </style>
 </head>
 <body>
@@ -335,13 +347,14 @@
     <header>
       <div class="header-left">
         <button class="touch-btn" aria-label="Menü öffnen" onclick="openSidebar()">☰</button>
-        <span class="brand">KI Workspace <small>2.1.0</small></span>
+        <span class="brand">KI Workspace <small>2.2.0</small></span>
 
         <!-- Dropdowns -->
         <select aria-label="Anbieter" id="sel-provider" class="ctrl-select" onchange="filterModels(true)"></select>
+        <select id="work-mode" class="ctrl-select" aria-label="Aufgabe" onchange="changeWorkMode()"><option value="chat">Chat / Bilder besprechen</option><option value="image">Bild erzeugen / bearbeiten</option></select>
         <select aria-label="Modell" id="sel-model" class="ctrl-select" onchange="saveModelChoice()"></select>
 
-        <button class="touch-btn" onclick="fetchLiveModels()" title="Modellliste aktualisieren" aria-label="Modellliste aktualisieren">↻</button>
+        <button class="touch-btn" onclick="refreshAllModels()" title="Modellliste aktualisieren" aria-label="Modellliste aktualisieren">↻</button>
       </div>
 
       <button class="touch-btn" aria-label="Einstellungen" onclick="openModal()">⚙</button>
@@ -406,6 +419,8 @@
   <script src="vendor/purify.js" defer></script>
   <script src="files.js" defer></script>
   <script src="uploads.js" defer></script>
-  <script src="app.js" defer></script>
+  <script src="images.js" defer></script>
+<script src="app.js" defer></script>
+<dialog id="image-viewer"><div class="image-view-header"><span id="image-view-title"></span><button class="touch-btn" onclick="document.getElementById('image-viewer').close()">Schließen</button></div><img id="image-full" alt=""></dialog>
 </body>
 </html>

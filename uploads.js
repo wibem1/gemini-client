@@ -59,10 +59,11 @@ async function pickAttachments(event) {
 function renderAttachments() {
  setStorage('or_pending',JSON.stringify(pendingAttachments));
  const container=$('file-indicator');container.replaceChildren();container.style.display=pendingAttachments.length?'flex':'none';
- for(const record of pendingAttachments){const chip=document.createElement('div');chip.className='attachment-chip';const span=document.createElement('span');span.textContent=record.name;span.title=record.description;const button=document.createElement('button');button.className='touch-btn';button.textContent='×';button.setAttribute('aria-label',record.name+' entfernen');button.onclick=()=>{if(busy)return;pendingAttachments=pendingAttachments.filter(a=>a.id!==record.id);renderAttachments();};chip.append(span,button);container.append(chip);}
+ for(const record of pendingAttachments){const chip=document.createElement('div');chip.className='attachment-chip';const span=document.createElement('span');span.textContent=record.name;span.title=record.description;const button=document.createElement('button');button.className='touch-btn';button.textContent='×';button.setAttribute('aria-label',record.name+' entfernen');button.onclick=()=>{if(busy)return;pendingAttachments=pendingAttachments.filter(a=>a.id!==record.id);renderAttachments();};if(record.category==='image'){const img=document.createElement('img');img.className='attachment-thumbnail';img.alt=record.name;chip.append(img);previewRecord(record).then(d=>{if(chip.isConnected)img.src=d.url;}).catch(()=>{});}chip.append(span,button);container.append(chip);}
 }
 function clearPendingAttachments(){pendingAttachments=[];renderAttachments();$('file-picker').value='';}
 async function messageForAPI(message) {
+ if(message.role==='assistant')return {role:message.role,content:contentText(message.content) || (message.attachments?.some(a=>a.generated)?'Ein Bild wurde erzeugt.':'')};
  if(!message.attachments?.length)return {role:message.role,content:message.content};
  const parts=[{type:'text',text:contentText(message.content) || 'Bitte betrachte die angehängten Dateien.'}];
  for(const descriptor of message.attachments){const record=await getFileRecord(descriptor.id);if(!record)throw new Error(`Die Datei „${descriptor.name}“ ist auf diesem Gerät nicht mehr vorhanden. Bitte erneut anhängen oder einen neuen Chat beginnen.`);
@@ -73,7 +74,7 @@ async function messageForAPI(message) {
  return {role:message.role,content:parts};
 }
 function appendAttachmentCards(container,message) {
- for(const record of message.attachments || []){const button=document.createElement('button');button.className='touch-btn source-file';button.textContent=record.name+' speichern';button.onclick=async()=>{try{const data=await getFileRecord(record.id);if(!data)throw new Error('Datei ist auf diesem Gerät nicht mehr vorhanden.');download(safeFilename(data.name,'datei'),data.blob,data.type);}catch(e){status(e.message,true);}};container.append(button);}
+ for(const record of message.attachments || []){if(record.category==='image'){appendImageCard(container,record);continue;}const button=document.createElement('button');button.className='touch-btn source-file';button.textContent=record.name+' speichern';button.onclick=async()=>{try{const data=await getFileRecord(record.id);if(!data)throw new Error('Datei ist auf diesem Gerät nicht mehr vorhanden.');download(safeFilename(data.name,'datei'),data.blob,data.type);}catch(e){status(e.message,true);}};container.append(button);}
 }
 async function saveOfficeArtifact(spec,button) {
  button.disabled=true;const original=button.textContent;button.textContent='Datei wird erstellt …';
