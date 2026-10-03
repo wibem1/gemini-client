@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>KI Workspace</title>
-  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="manifest" href="manifest.webmanifest" crossorigin="use-credentials">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon-192.png">
   <meta name="theme-color" content="#1a73e8">
@@ -301,7 +301,7 @@
     <header>
       <div class="header-left">
         <button class="touch-btn" aria-label="Menü öffnen" onclick="openSidebar()">☰</button>
-        <span class="brand">KI Workspace <small>1.0.0</small></span>
+        <span class="brand">KI Workspace <small>1.0.1</small></span>
 
         <!-- Dropdowns -->
         <select aria-label="Anbieter" id="sel-provider" class="ctrl-select" onchange="filterModels(true)"></select>

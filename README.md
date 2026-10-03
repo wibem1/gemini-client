@@ -1,4 +1,4 @@
-# KI Workspace 1.0.0
+# KI Workspace 1.0.1
 
 Stand: 03.10.2026. Installierbarer Chat mit den über OpenRouter verfügbaren Text-/Chatmodellen. Keine zusätzliche Laufzeitbibliothek, kein Build und kein eigener API-Proxy erforderlich.
 
@@ -43,3 +43,7 @@ Eine bezahlte Modellanfrage mit dem persönlichen API-Schlüssel wurde nicht get
 Zum lokalen Start beispielsweise `python3 -m http.server 8000` aus diesem Verzeichnis ausführen und `http://localhost:8000` öffnen. `file://` aktiviert keinen Service Worker. Für GitHub Pages kann der Repository-Hauptzweig mit dem Wurzelverzeichnis als Quelle verwendet werden; alle Assetpfade sind relativ.
 
 OpenRouter-Dokumentation: https://openrouter.ai/docs/quickstart
+
+## Korrektur 1.0.1
+
+Der Manifest-Link verwendet `crossorigin="use-credentials"`. Das ist bei der privaten, anmeldegeschützten Veröffentlichung erforderlich: Der normale Manifestabruf sendet sonst keine Anmeldung mit und erhält HTTP 401. Der Service-Worker-Cache ist für diese Version erneuert. Eine tatsächliche Android-Installation muss noch auf dem Gerät geprüft werden.
