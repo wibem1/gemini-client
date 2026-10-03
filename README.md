@@ -1,6 +1,6 @@
-# KI Workspace 1.0.1
+# KI Workspace 1.1.0
 
-Stand: 03.10.2026. Installierbarer Chat mit den über OpenRouter verfügbaren Text-/Chatmodellen. Keine zusätzliche Laufzeitbibliothek, kein Build und kein eigener API-Proxy erforderlich.
+Stand: 03.10.2026. Installierbarer Chat mit den über OpenRouter verfügbaren Text-/Chatmodellen. Kein Build und kein eigener API-Proxy erforderlich. Markdown wird mit lokal mitgeliefertem Marked und DOMPurify dargestellt.
 
 ## Start
 
@@ -47,3 +47,13 @@ OpenRouter-Dokumentation: https://openrouter.ai/docs/quickstart
 ## Korrektur 1.0.1
 
 Der Manifest-Link verwendet `crossorigin="use-credentials"`. Das ist bei der privaten, anmeldegeschützten Veröffentlichung erforderlich: Der normale Manifestabruf sendet sonst keine Anmeldung mit und erhält HTTP 401. Der Service-Worker-Cache ist für diese Version erneuert. Eine tatsächliche Android-Installation muss noch auf dem Gerät geprüft werden.
+
+## Dateien und formatierte Antworten – 1.1.0
+
+Markdown-Antworten werden mit Überschriften, Listen, Tabellen und Codeblöcken dargestellt. Marked und DOMPurify sind lokal im Verzeichnis `vendor` enthalten; Lizenztexte sind beigefügt. Generierter Code wird nicht ausgeführt.
+
+Die App informiert das Modell bei jedem Auftrag über ihre Dateifunktionen. Geschlossene Codeblöcke mit einer unterstützten Sprache bekommen einen Speichern-Button. Für einen gewünschten MIDI-Download liefert das Modell einen `midi-json`-Block mit Tempo, Taktart, Spuren und vollständigen Notendaten. `files.js` erzeugt daraus lokal eine Standard-MIDI-Datei (Format 1, 480 Ticks pro Viertelnote). Akkorde und mehrere Spuren werden unterstützt. MIDI-Nummern und Instrumentprogramme werden ab 0 gezählt. Nicht plausible Daten führen zu einer Fehlermeldung statt einem falschen Download.
+
+PDF, DOCX und Audio werden weiterhin nicht erzeugt. Bereits vorhandene Python-Antworten werden nicht automatisch zu MIDI; dafür muss der Auftrag erneut gesendet werden. Da Code und Notendaten im Chat gespeichert sind, erscheinen Speichern-Buttons nach dem Wiederöffnen erneut. Das Modell muss das vereinbarte Ausgabeformat einhalten; die App kontrolliert die Daten, nicht die musikalische Qualität.
+
+Zusätzlich getestet mit einem unabhängigen MIDI-Parser: Format und Spurenzahl, Tempo, 6/8-Taktart, Akkorde, Note-on/off-Zahl, exakte Notenzeiten und Instrumentdaten. DOM-Tests prüfen Markdown, MIDI-Downloadbytes, Download-Buttons nach Wiederöffnen, unvollständige Antworten, fehlerhafte Daten und HTML-Filterung. Die bisherigen Chat-Tests bestehen weiterhin. Eine neue kostenpflichtige Modellantwort und reale Geräte wurden nicht getestet.

@@ -1,5 +1,5 @@
 'use strict';
-const VERSION = '1.0.1';
+const VERSION = '1.1.0';
 const $ = id => document.getElementById(id);
 const fallbackStore = {};
 let storageWarning = false;
@@ -122,7 +122,7 @@ function renderChat(scroll=true) {
     const bubble=document.createElement('div');bubble.className=msg.role==='user'?'bubble-user':'bubble-bot';
     if(msg.error) bubble.classList.add('error');
     if(msg.role==='assistant') { const meta=document.createElement('div');meta.className='msg-meta';meta.textContent=(msg.model || 'KI')+(msg.partial?' · unterbrochen':'');bubble.append(meta); }
-    const text=document.createElement('div');text.textContent=contentText(msg.content) || (msg.pending?'Antwort wird erstellt …':'');bubble.append(text);
+    const text=document.createElement('div');if(msg.role==='assistant' && !msg.error && msg.content)renderAssistant(text,msg);else text.textContent=contentText(msg.content) || (msg.pending?'Antwort wird erstellt …':'');bubble.append(text);
     if(Array.isArray(msg.content)) for(const part of msg.content) if(part.type==='image_url' && /^data:image\/(png|jpeg|webp|gif);base64,/i.test(part.image_url?.url || '')) { const img=document.createElement('img');img.src=part.image_url.url;img.alt='Angehängtes Bild';bubble.append(img); }
     row.append(bubble);container.append(row);
   }
@@ -188,7 +188,7 @@ async function sendMessage(retry=false) {
   }
   // Only complete conversational messages are sent. UI error messages never become AI context.
   const messages=chat.messages.filter(m=>!m.error && !m.partial && !m.pending).map(m=>({role:m.role,content:m.content}));
-  const mem=getStorage('or_mem').trim();if(mem)messages.unshift({role:'system',content:mem});
+  const mem=getStorage('or_mem').trim();messages.unshift({role:'system',content:FILE_CAPABILITIES+(mem?'\n\nZusätzliche Angaben des Nutzers:\n'+mem:'')});
   const bot={role:'assistant',content:'',model,pending:true};chat.messages.push(bot);chat.updated=Date.now();
   controller=new AbortController();retryAvailable=false;setBusy(true);renderChat();persist();status('Antwort wird erstellt …');
   // A timeout aborts this request once; no automatic paid retries.

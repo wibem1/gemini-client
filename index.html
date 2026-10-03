@@ -275,6 +275,19 @@
       textarea#user-text { min-width:50%; }
       header { padding-top:max(10px, env(safe-area-inset-top)); }
     }
+
+    .markdown { white-space:normal; overflow-wrap:anywhere; min-width:0; }
+    .markdown p, .markdown ul, .markdown ol, .markdown blockquote, .markdown pre { margin:0 0 16px; }
+    .markdown h1, .markdown h2, .markdown h3, .markdown h4 { font-size:1.15em; margin:24px 0 12px; line-height:1.4; }
+    .markdown ul, .markdown ol { padding-left:24px; }
+    .markdown pre { white-space:pre; overflow:auto; max-width:100%; padding:14px; background:#f1f5f9; border:1px solid var(--border); border-radius:8px; }
+    .markdown code { font-family:ui-monospace,monospace; font-size:0.9em; }
+    .markdown table { border-collapse:collapse; display:block; overflow:auto; }
+    .markdown th, .markdown td { padding:8px; border:1px solid var(--border); }
+    .file-card { display:flex; flex-wrap:wrap; align-items:center; gap:12px; border:1px solid var(--border); border-radius:10px; padding:12px; margin:12px 0; background:#f8fafc; }
+    .file-card span { font-size:14px; }
+    .file-card.error { color:#9f1239; }
+    .bubble-bot { min-width:0; white-space:normal; }
   </style>
 </head>
 <body>
@@ -301,7 +314,7 @@
     <header>
       <div class="header-left">
         <button class="touch-btn" aria-label="Menü öffnen" onclick="openSidebar()">☰</button>
-        <span class="brand">KI Workspace <small>1.0.1</small></span>
+        <span class="brand">KI Workspace <small>1.1.0</small></span>
 
         <!-- Dropdowns -->
         <select aria-label="Anbieter" id="sel-provider" class="ctrl-select" onchange="filterModels(true)"></select>
@@ -365,6 +378,9 @@
     </div>
   </div>
 
+  <script src="vendor/marked.js" defer></script>
+  <script src="vendor/purify.js" defer></script>
+  <script src="files.js" defer></script>
   <script src="app.js" defer></script>
 </body>
 </html>
