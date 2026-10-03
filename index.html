@@ -252,6 +252,7 @@
     .bubble-user, .bubble-bot, textarea#user-text { font-size:16px; }
     textarea#user-text { min-height:44px; }
     #status { padding:8px 16px; font-size:14px; background:#f1f5f9; color:#334155; overflow-wrap:anywhere; }
+    #request-progress {padding:8px 16px;font-size:14px;color:#334155;background:#eff6ff;overflow-wrap:anywhere;}
     #status.error { color:#9f1239; background:#fff1f2; }
     #status:empty { display:none; }
     .modal-card { max-height:90dvh; overflow:auto; }
@@ -347,7 +348,7 @@
     <header>
       <div class="header-left">
         <button class="touch-btn" aria-label="Menü öffnen" onclick="openSidebar()">☰</button>
-        <span class="brand">KI Workspace <small>2.2.0</small></span>
+        <span class="brand">KI Workspace <small>2.2.1</small></span>
 
         <!-- Dropdowns -->
         <select aria-label="Anbieter" id="sel-provider" class="ctrl-select" onchange="filterModels(true)"></select>
@@ -362,6 +363,7 @@
 
 <div id="model-details"></div>
     <div id="status" role="status" aria-live="polite"></div>
+    <div id="request-progress" hidden aria-live="off"></div>
     <!-- CHAT VERLAUF -->
     <main id="chat-scroll">
       <div class="chat-box" id="chat-container">
@@ -384,7 +386,7 @@
           <input type="file" multiple id="file-picker" style="display:none;" onchange="onFilePicked(event)">
           <button class="touch-btn" aria-label="Dateien anhängen" onclick="document.getElementById('file-picker').click()">📎</button>
           <textarea aria-label="Nachricht" id="user-text" placeholder="Nachricht eingeben..." rows="1" oninput="autoResize(this)"></textarea>
-          <button id="btn-stop" class="touch-btn" onclick="stopRequest()" hidden>Stop</button>
+          <button id="btn-stop" class="touch-btn" onclick="stopRequest()" hidden>Stoppen</button>
           <button id="btn-retry" class="touch-btn" onclick="retryMessage()" hidden>Erneut versuchen</button>
           <button id="btn-send" class="btn-send" onclick="sendMessage()">Senden</button>
         </div>

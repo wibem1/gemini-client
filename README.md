@@ -1,4 +1,4 @@
-# KI Workspace 2.2.0
+# KI Workspace 2.2.1
 
 Stand: 03.10.2026. Installierbare Chat-App mit OpenRouter-Modellwahl, gespeicherten Chats, mehreren Anhängen und lokal erzeugten Ergebnisdateien.
 
@@ -94,3 +94,7 @@ Skulpt ist unter seiner MIT-Lizenz in `vendor/skulpt` enthalten. Tests prüfen d
 - Technische Regressionstests prüfen die vollständige Bildkette mit simulierten API-Antworten, echter lokaler Binärspeicherung und Datei-Download. Keine kostenpflichtige Generierung und kein Test auf einem echten Android-/iPad-Gerät innerhalb dieser Entwicklungsprüfung.
 
 Dies stellt die Bildkommunikation bereit, bedeutet aber noch keine vollständige Gleichheit mit ChatGPT: Audio/Video, allgemeine Programmausführung und weitere oben genannte Funktionen fehlen weiterhin.
+
+## Laufzeit und Abbrechen (2.2.1, 03.10.2026)
+
+Die App beendet Chat- und Bildanfragen nicht mehr automatisch nach fünf Minuten. Eine Laufzeitanzeige zählt ab dem Senden und verschwindet nach Abschluss, Fehler oder manuellem Abbruch. **Stoppen** bricht die Browser-Anfrage ab und erhält bereits empfangenen Text als unvollständige Antwort. Es gibt keine automatische Wiederholung. Netzwerk, Browser, OpenRouter oder Modellanbieter können Anfragen unabhängig davon beenden; die App kann deren Grenzen nicht aufheben. Ein manueller Abbruch garantiert nicht, dass beim Anbieter keine weiteren Kosten entstehen. Die 20-Sekunden-Grenzen für Modelllisten und Schlüsselprüfung sowie der begrenzte lokale MIDI-Konverter betreffen keine KI-Generierung und bleiben bestehen.

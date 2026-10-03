@@ -1,5 +1,5 @@
 'use strict';
-const VERSION = '2.2.0';
+const VERSION = '2.2.1';
 const $ = id => document.getElementById(id);
 const fallbackStore = {};
 let storageWarning = false;
@@ -154,6 +154,12 @@ function setBusy(value) {
   $('btn-stop').hidden=!value;$('btn-retry').hidden=value || !retryAvailable;renderChatList();
 }
 function stopRequest() { controller?.abort(); }
+function startRequestProgress() {
+  const started=Date.now(),element=$('request-progress');element.hidden=false;
+  function update(){const seconds=Math.floor((Date.now()-started)/1000),minutes=Math.floor(seconds/60);element.textContent='Laufzeit: '+minutes+':'+String(seconds%60).padStart(2,'0')+' · Abbrechen mit „Stoppen“.';}
+  update();const interval=setInterval(update,1000);
+  return ()=>{clearInterval(interval);element.hidden=true;element.textContent='';};
+}
 async function consumeStream(response,onDelta,onMeta=()=>{}) {
   if(!response.body) throw new Error('Der Browser unterstützt den Antwortstrom nicht.');
   const reader=response.body.getReader(),decoder=new TextDecoder();let buffer='',doneMarker=false;
@@ -199,7 +205,7 @@ async function sendMessage(retry=false) {
   }
   const bot={id:crypto.randomUUID(),role:'assistant',content:'',model,pending:true};chat.messages.push(bot);chat.updated=Date.now();
   controller=new AbortController();retryAvailable=false;setBusy(true);renderChat();persist();status('Dateien und Auftrag werden vorbereitet …');
-  const timeout=setTimeout(()=>controller?.abort('timeout'),300000);
+  const finishProgress=startRequestProgress();
   try {
     if(imageMode()){await generateImage(chat,bot,model,key,controller.signal);status('Bild fertig. Du kannst es speichern oder weiter bearbeiten.');return;}
     const history=chat.messages.filter(m=>!m.error && !m.partial && !m.pending);
@@ -220,11 +226,11 @@ async function sendMessage(retry=false) {
     status('Antwort vollständig.');
   } catch(e) {
     const aborted=controller.signal.aborted;
-    const detail=aborted?(controller.signal.reason==='timeout'?'Zeitlimit von fünf Minuten erreicht.':'Anfrage gestoppt.'):e.message;
+    const detail=aborted?'Anfrage von dir gestoppt.':e.message;
     if(bot.content || bot.attachments?.length) { bot.partial=true;status(detail+' Die bisherige Antwort bleibt erhalten.',true); }
     else { bot.error=true;bot.content=detail;status(detail,true); }
     retryAvailable=true;
-  } finally { clearTimeout(timeout);bot.pending=false;controller=null;persist();setBusy(false);renderChat(); }
+  } finally { finishProgress();bot.pending=false;controller=null;persist();setBusy(false);renderChat(); }
 }
 function retryMessage() { if(retryAvailable)sendMessage(true); }
 function download(name,data,type) { const url=URL.createObjectURL(new Blob([data],{type}));const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000); }
