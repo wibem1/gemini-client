@@ -1,4 +1,4 @@
-# KI Workspace 2.3.0
+# KI Workspace 2.4.0
 
 Stand: 03.10.2026. Installierbare Chat-App mit OpenRouter-Modellwahl, gespeicherten Chats, mehreren Anhängen und lokal erzeugten Ergebnisdateien.
 
@@ -109,3 +109,9 @@ Die App beendet Chat- und Bildanfragen nicht mehr automatisch nach fünf Minuten
 - Bei teuren Modellen bleibt insbesondere längere Ausgabe teuer. Die technische Prüfung bestätigt keine tatsächliche Ersparnis einer bezahlten Modellanfrage.
 
 Referenz: https://openrouter.ai/docs/guides/best-practices/prompt-caching
+
+## Modellinfo (2.4.0)
+
+„ⓘ Modellinfo“ unter der Modellauswahl erklärt die Fähigkeiten des aktuell ausgewählten Modells in dieser App, Kosten und Kontextgröße. Die Anzeige folgt dem Wechsel von Modell und Modus. Live-Kataloge speichern zusätzlich die Originalbeschreibung; vorhandene gespeicherte Kataloge funktionieren weiterhin.
+
+Für ausgewählte aktuelle Modelle gibt es kurze deutsche Einsatzprofile und Grenzen mit Stand 03.10.2026. Grundlage: veröffentlichte OpenRouter-Modellprofile; keine eigenen Vergleichstests und keine behaupteten Ranglisten für kreative Qualität. Ungeprüfte Modelle bekommen keine erfundene Markenbewertung. Das jeweilige Modellprofil ist direkt verlinkt. Audio/Video-Fähigkeiten des Modells werden von den noch fehlenden App-Eingaben unterschieden. Die Info benötigt keine kostenpflichtigen KI-Anfragen.

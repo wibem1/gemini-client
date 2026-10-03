@@ -1,5 +1,5 @@
 'use strict';
-const VERSION = '2.3.0';
+const VERSION = '2.4.0';
 const $ = id => document.getElementById(id);
 const fallbackStore = {};
 let storageWarning = false;
@@ -87,7 +87,7 @@ async function fetchLiveModels(quiet=false) {
   try {
     const r=await request('models',{signal:AbortSignal.timeout(20000)});const d=await r.json();
     if(!Array.isArray(d.data)) throw new Error('OpenRouter hat keine Modellliste geliefert.');
-    const list=d.data.filter(m=>(m.architecture?.output_modalities || ['text']).includes('text')).map(m=>({id:m.id,name:m.name || m.id,provider:m.id.split('/')[0],inputs:m.architecture?.input_modalities || ['text'],outputs:m.architecture?.output_modalities || ['text'],context_length:m.context_length,pricing:m.pricing}));
+    const list=d.data.filter(m=>(m.architecture?.output_modalities || ['text']).includes('text')).map(m=>({id:m.id,name:m.name || m.id,provider:m.id.split('/')[0],inputs:m.architecture?.input_modalities || ['text'],outputs:m.architecture?.output_modalities || ['text'],context_length:m.context_length,pricing:m.pricing,description:m.description || ''}));
     if(!list.length) throw new Error('Keine Chatmodelle gefunden.');
     setStorage('or_catalog',JSON.stringify(list));setupDropdowns(list);
     if(!busy && !imageMode()) status(`${list.length} Chatmodelle von OpenRouter geladen.`);
@@ -138,11 +138,12 @@ function renderChatList() {
 function newChat() { if(busy || picking)return;createChat();persist();renderChat();removeFile();$('user-text').value='';autoResize($('user-text'));closeSidebar();retryAvailable=false;$('btn-retry').hidden=true; }
 function clearHistory() { if(busy || picking)return;if(!confirm('Alle gespeicherten Chats und Anhangsdateien auf diesem Gerät löschen?'))return;chats=[];createChat();persist();renderChat();removeFile();fileOperation('readwrite',store=>store.clear()).catch(e=>status(e.message,true));closeSidebar(); }
 function updateModelDetails() {
-  const model=availableModels().find(m=>m.id===$('sel-model').value);if(!model)return;
+  const model=availableModels().find(m=>m.id===$('sel-model').value);if(!model){$('model-details').textContent='Kein Modell verfügbar.';return;}
   const detail=[model.inputs?.includes('image')?'Eingabe: Text und Bilder':'Eingabe: Text',imageMode()?'Ausgabe: Bilder':'Ausgabe: Text'];
   if(model.context_length)detail.push('Kontext: '+Number(model.context_length).toLocaleString('de-DE')+' Tokens');
   if(model.pricing?.prompt!==undefined && model.pricing?.completion!==undefined){const input=Number(model.pricing.prompt)*1e6,output=Number(model.pricing.completion)*1e6;if(Number.isFinite(input)&&Number.isFinite(output))detail.push(`pro 1 Mio. Tokens: $${input.toFixed(2)} Eingabe / $${output.toFixed(2)} Ausgabe`);}
   $('model-details').textContent=detail.join(' · ');
+  if($('model-info-dialog')?.open)renderModelInfo();
 }
 function appendSources(container,msg) {
  const citations=(msg.annotations || []).map(a=>a.url_citation).filter(c=>c && /^https?:\/\//i.test(c.url || ''));

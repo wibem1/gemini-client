@@ -6,7 +6,7 @@ function availableModels(){return imageMode()?imageCatalog:modelCatalog;}
 function modelPreference(){return imageMode()?'or_image_model':'or_model';}
 function changeWorkMode(){if(busy)return;setStorage('or_mode',$('work-mode').value);setupDropdowns();$('web-search').disabled=imageMode();$('user-text').placeholder=imageMode()?'Bild beschreiben oder Änderung angeben …':'Nachricht eingeben …';}
 async function fetchImageModels(){
- try{const r=await request('images/models',{signal:AbortSignal.timeout(20000)});const d=await r.json();if(!Array.isArray(d.data))throw new Error('Keine Bildmodelle geliefert.');imageCatalog=d.data.map(m=>({id:m.id,name:m.name,provider:m.id.split('/')[0],inputs:m.architecture?.input_modalities || ['text'],outputs:['image'],parameters:m.supported_parameters || {}}));setStorage('or_image_catalog',JSON.stringify(imageCatalog));if(imageMode()){setupDropdowns();if(!busy)status(imageCatalog.length+' Bildmodelle von OpenRouter geladen.');}}
+ try{const r=await request('images/models',{signal:AbortSignal.timeout(20000)});const d=await r.json();if(!Array.isArray(d.data))throw new Error('Keine Bildmodelle geliefert.');imageCatalog=d.data.map(m=>({id:m.id,name:m.name,provider:m.id.split('/')[0],inputs:m.architecture?.input_modalities || ['text'],outputs:['image'],parameters:m.supported_parameters || {},description:m.description || '',pricing:m.pricing,context_length:m.context_length}));setStorage('or_image_catalog',JSON.stringify(imageCatalog));if(imageMode()){setupDropdowns();if(!busy)status(imageCatalog.length+' Bildmodelle von OpenRouter geladen.');}}
  catch(e){if(imageMode())status('Bildmodelle konnten nicht geladen werden. '+e.message,true);}
 }
 async function imageBlob(url){

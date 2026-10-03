@@ -321,6 +321,19 @@
     #image-full {display:block;max-width:100%;max-height:80dvh;margin:auto;object-fit:contain;}
     #work-mode {max-width:100%;font-size:16px;flex-basis:100%;order:1;}
     #sel-provider,#sel-model {order:2;}
+    .model-info-bar {display:flex;align-items:center;gap:8px;border-bottom:1px solid #e2e8f0;padding-right:12px;flex-shrink:0;}
+    .model-info-bar #model-details {flex:1;min-width:0;border:0;}
+    #btn-model-info {white-space:nowrap;}
+    #model-info-dialog {margin:auto;width:min(94vw,640px);max-height:90dvh;overflow:auto;padding:20px;border:1px solid var(--border);border-radius:16px;color:var(--text);}
+    #model-info-dialog::backdrop {background:#0008;}
+    .model-info-header {display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;}
+    .model-info-header h2 {font-size:20px;overflow-wrap:anywhere;}
+    #model-info-content {line-height:1.5;font-size:15px;overflow-wrap:anywhere;}
+    #model-info-content section {margin-bottom:18px;}
+    #model-info-content h3 {font-size:16px;margin-bottom:6px;}
+    #model-info-content p {margin:6px 0;}
+    #model-info-content details {margin-bottom:16px;}
+    #model-info-content a {color:var(--primary);}
   </style>
 </head>
 <body>
@@ -350,11 +363,11 @@
     <header>
       <div class="header-left">
         <button class="touch-btn" aria-label="Menü öffnen" onclick="openSidebar()">☰</button>
-        <span class="brand">KI Workspace <small>2.3.0</small></span>
+        <span class="brand">KI Workspace <small>2.4.0</small></span>
 
         <!-- Dropdowns -->
         <select aria-label="Anbieter" id="sel-provider" class="ctrl-select" onchange="filterModels(true)"></select>
-        <select id="work-mode" class="ctrl-select" aria-label="Aufgabe" onchange="changeWorkMode()"><option value="chat">Chat / Bilder besprechen</option><option value="image">Bild erzeugen / bearbeiten</option></select>
+        <select id="work-mode" class="ctrl-select" aria-label="Aufgabe" onchange="changeWorkMode()"><option value="chat">Chat</option><option value="image">Bild erstellen / bearbeiten</option></select>
         <select aria-label="Modell" id="sel-model" class="ctrl-select" onchange="saveModelChoice()"></select>
 
         <button class="touch-btn" onclick="refreshAllModels()" title="Modellliste aktualisieren" aria-label="Modellliste aktualisieren">↻</button>
@@ -363,7 +376,7 @@
       <button class="touch-btn" aria-label="Einstellungen" onclick="openModal()">⚙</button>
     </header>
 
-<div id="model-details"></div>
+<div class="model-info-bar"><div id="model-details"></div><button id="btn-model-info" class="touch-btn" onclick="openModelInfo()" aria-haspopup="dialog">ⓘ Modellinfo</button></div>
     <div id="status" role="status" aria-live="polite"></div>
     <div id="request-progress" hidden aria-live="off"></div>
     <!-- CHAT VERLAUF -->
@@ -425,6 +438,8 @@
     </div>
   </div>
 
+  <dialog id="model-info-dialog" aria-labelledby="model-info-title"><div class="model-info-header"><h2 id="model-info-title">Modellinfo</h2><button class="touch-btn" onclick="document.getElementById('model-info-dialog').close()" autofocus>Schließen</button></div><div id="model-info-content"></div></dialog>
+  <script src="model-info.js" defer></script>
   <script src="vendor/marked.js" defer></script>
   <script src="vendor/purify.js" defer></script>
   <script src="files.js" defer></script>
