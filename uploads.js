@@ -62,12 +62,13 @@ function renderAttachments() {
  for(const record of pendingAttachments){const chip=document.createElement('div');chip.className='attachment-chip';const span=document.createElement('span');span.textContent=record.name;span.title=record.description;const button=document.createElement('button');button.className='touch-btn';button.textContent='×';button.setAttribute('aria-label',record.name+' entfernen');button.onclick=()=>{if(busy)return;pendingAttachments=pendingAttachments.filter(a=>a.id!==record.id);renderAttachments();};if(record.category==='image'){const img=document.createElement('img');img.className='attachment-thumbnail';img.alt=record.name;chip.append(img);previewRecord(record).then(d=>{if(chip.isConnected)img.src=d.url;}).catch(()=>{});}chip.append(span,button);container.append(chip);}
 }
 function clearPendingAttachments(){pendingAttachments=[];renderAttachments();$('file-picker').value='';}
-async function messageForAPI(message) {
+async function messageForAPI(message,seenTextFiles=new Set()) {
  if(message.role==='assistant')return {role:message.role,content:contentText(message.content) || (message.attachments?.some(a=>a.generated)?'Ein Bild wurde erzeugt.':'')};
  if(!message.attachments?.length)return {role:message.role,content:message.content};
  const parts=[{type:'text',text:contentText(message.content) || 'Bitte betrachte die angehängten Dateien.'}];
  for(const descriptor of message.attachments){const record=await getFileRecord(descriptor.id);if(!record)throw new Error(`Die Datei „${descriptor.name}“ ist auf diesem Gerät nicht mehr vorhanden. Bitte erneut anhängen oder einen neuen Chat beginnen.`);
-  if(record.extracted)parts.push({type:'text',text:`[Datei: ${record.name}; Dateikennung: ${record.id}; Format: ${record.category}]\n${record.extracted}\n[Ende der Datei]`});
+  if(record.extracted && seenTextFiles.has(record.id))parts.push({type:'text',text:`[Datei: ${record.name}; Dateikennung: ${record.id}; Inhalt unverändert bereits früher in diesem Chat mitgeliefert.]`});
+  else if(record.extracted){seenTextFiles.add(record.id);parts.push({type:'text',text:`[Datei: ${record.name}; Dateikennung: ${record.id}; Format: ${record.category}]\n${record.extracted}\n[Ende der Datei]`});}
   if(record.category==='image')parts.push({type:'image_url',image_url:{url:await blobDataURL(record.blob)}});
   for(const image of record.images || []){parts.push({type:'text',text:`Bild von PDF-Seite ${image.page} aus ${record.name}`},{type:'image_url',image_url:{url:image.url}});}
  }

@@ -1,5 +1,5 @@
 'use strict';
-const VERSION = '2.2.1';
+const VERSION = '2.3.0';
 const $ = id => document.getElementById(id);
 const fallbackStore = {};
 let storageWarning = false;
@@ -28,11 +28,11 @@ function persist() { setStorage('or_chats',JSON.stringify(chats));setStorage('or
 function openSidebar() { $('sidebar').classList.add('open');$('side-backdrop').classList.add('open'); }
 function closeSidebar() { $('sidebar').classList.remove('open');$('side-backdrop').classList.remove('open'); }
 function openModal() {
-  $('input-key').value=getStorage('or_key');$('input-mem').value=getStorage('or_mem');
+  $('input-key').value=getStorage('or_key');$('input-mem').value=getStorage('or_mem');$('input-cache').checked=getStorage('or_cache')==='1';$('input-concise').checked=getStorage('or_concise')==='1';
   $('key-result').textContent='';$('settings-modal').style.display='flex';$('input-key').focus();
 }
 function cancelModal() { $('settings-modal').style.display='none'; }
-function closeModal() { setStorage('or_key',$('input-key').value.trim());setStorage('or_mem',$('input-mem').value.trim());cancelModal(); }
+function closeModal() { setStorage('or_key',$('input-key').value.trim());setStorage('or_mem',$('input-mem').value.trim());setStorage('or_cache',$('input-cache').checked?'1':'0');setStorage('or_concise',$('input-concise').checked?'1':'0');cancelModal(); }
 function errorMessage(code,message) {
   const explanations={401:'Der OpenRouter-Schlüssel ist ungültig oder wurde widerrufen.',402:'Das OpenRouter-Guthaben oder das Limit dieses Schlüssels reicht nicht aus.',403:'OpenRouter verweigert diese Anfrage. Prüfe die Freigaben des Schlüssels und die Nutzungsbedingungen des gewählten Modells.',404:'Das gewählte Modell ist nicht mehr verfügbar. Bitte die Modellliste aktualisieren.',429:'Das Anfragelimit ist erreicht. Bitte später erneut versuchen.',503:'Für dieses Modell ist derzeit kein Anbieter verfügbar.'};
   return [code ? `HTTP ${code}` : '',explanations[code] || '', message || 'Unbekannter Fehler'].filter(Boolean).join(' · ');
@@ -147,7 +147,7 @@ function updateModelDetails() {
 function appendSources(container,msg) {
  const citations=(msg.annotations || []).map(a=>a.url_citation).filter(c=>c && /^https?:\/\//i.test(c.url || ''));
  if(citations.length){const sources=document.createElement('div');sources.className='sources';const title=document.createElement('strong');title.textContent='Quellen';sources.append(title);for(const citation of [...new Map(citations.map(c=>[c.url,c])).values()]){const a=document.createElement('a');a.href=citation.url;a.textContent=citation.title || citation.url;a.target='_blank';a.rel='noopener noreferrer';sources.append(a);}container.append(sources);}
- if(msg.usage){const info=document.createElement('div');info.className='msg-meta';const parts=[];if(msg.usage.total_tokens)parts.push(Number(msg.usage.total_tokens).toLocaleString('de-DE')+' Tokens');if(typeof msg.usage.cost==='number')parts.push('$'+msg.usage.cost.toFixed(5));info.textContent=parts.join(' · ');container.append(info);}
+ if(msg.usage){const info=document.createElement('div');info.className='msg-meta';info.textContent=formatUsage(msg.usage);container.append(info);}
 }
 function setBusy(value) {
   busy=value;for(const id of ['btn-send','sel-provider','sel-model','file-picker','work-mode']) $(id).disabled=value;
@@ -213,9 +213,10 @@ async function sendMessage(retry=false) {
     if(controller.signal.aborted)throw new DOMException('Abgebrochen','AbortError');
     const textLength=messages.reduce((sum,m)=>sum+contentText(m.content).length,0);const context=modelCatalog.find(m=>m.id===model)?.context_length;
     if(context && textLength>context*3)throw new Error('Dieser Chat mit seinen Dateien ist für den Kontext des Modells zu groß. Bitte ein Modell mit größerem Kontext oder einen neuen Chat mit einem Ausschnitt verwenden. Es wurde nichts gekürzt.');
-    const mem=getStorage('or_mem').trim();messages.unshift({role:'system',content:FILE_CAPABILITIES+'\n'+WORKSPACE_CAPABILITIES+(mem?'\n\nZusätzliche Angaben des Nutzers:\n'+mem:'')});
+    const mem=getStorage('or_mem').trim();messages.unshift({role:'system',content:FILE_CAPABILITIES+'\n'+WORKSPACE_CAPABILITIES+(getStorage('or_concise')==='1'?'\nAntworte in knapper Prosa, soweit der Auftrag das erlaubt; keine notwendigen Details, Analyseschritte oder Dateidaten weglassen.':'')+(mem?'\n\nZusätzliche Angaben des Nutzers:\n'+mem:'')});
     const web=$('web-search').checked;status(web?'Websuche und Antwort werden angefordert …':'Antwort wird erstellt …');
-    const response=await request('chat/completions',{key,body:{model,messages,stream:true,stream_options:{include_usage:true},plugins:web?[{id:'web',max_results:3}]:[{id:'web',enabled:false}]},signal:controller.signal});
+    const cacheRequested=applyPromptCaching(messages,model);bot.cacheRequested=cacheRequested;
+    const response=await request('chat/completions',{key,body:{model,messages,session_id:chat.id,stream:true,stream_options:{include_usage:true},plugins:web?[{id:'web',max_results:3}]:[{id:'web',enabled:false}]},signal:controller.signal});
     if(response.headers.get('content-type')?.includes('text/event-stream')) {
       await consumeStream(response,(delta,actualModel)=>{bot.content+=delta;if(actualModel)bot.model=actualModel;renderChat();},event=>{if(event.usage)bot.usage=event.usage;const annotations=event.choices?.[0]?.delta?.annotations || event.choices?.[0]?.message?.annotations;if(annotations)bot.annotations=[...(bot.annotations || []),...annotations];});
     } else {
@@ -262,3 +263,25 @@ renderChat();persist();
   await Promise.all([fetchLiveModels(true),fetchImageModels()]);
 })();
 if('serviceWorker' in navigator && location.protocol!=='file:')navigator.serviceWorker.register('sw.js').catch(e=>status('Die Offline-Funktion konnte nicht aktiviert werden: '+e.message,true));
+
+function formatUsage(usage){
+ const parts=[],count=n=>Number(n).toLocaleString('de-DE');
+ if(Number.isFinite(usage.prompt_tokens))parts.push('Eingabe: '+count(usage.prompt_tokens));
+ if(Number.isFinite(usage.completion_tokens))parts.push('Ausgabe: '+count(usage.completion_tokens));
+ const reasoning=usage.completion_tokens_details?.reasoning_tokens;if(Number.isFinite(reasoning))parts.push('davon Denken: '+count(reasoning));
+ const cached=usage.prompt_tokens_details?.cached_tokens,write=usage.prompt_tokens_details?.cache_write_tokens;
+ if(Number.isFinite(cached))parts.push('davon Cache gelesen: '+count(cached));
+ if(write>0)parts.push('Cache neu geschrieben: '+count(write));
+ if(!Number.isFinite(usage.prompt_tokens)&&!Number.isFinite(usage.completion_tokens)&&Number.isFinite(usage.total_tokens))parts.push('Gesamt: '+count(usage.total_tokens)+' Tokens');
+ if(typeof usage.cost==='number')parts.push('$'+usage.cost.toFixed(5));return parts.join(' · ');
+}
+function applyPromptCaching(messages,model){
+ if(getStorage('or_cache')!=='1'||!model.startsWith('anthropic/'))return false;
+ // One explicit text breakpoint works across Anthropic-compatible providers.
+ // Only long prefixes qualify; do not cache small single prompts.
+ const prefix=messages.slice(0,-1);if(prefix.reduce((n,m)=>n+contentText(m.content).length,0)<16000)return false;
+ const target=prefix.at(-1);if(!target)return false;
+ const parts=typeof target.content==='string'?[{type:'text',text:target.content}]:target.content.map(p=>({...p}));
+ const text=[...parts].reverse().find(p=>p.type==='text'&&p.text);if(!text)return false;
+ text.cache_control={type:'ephemeral'};target.content=parts;return true;
+}

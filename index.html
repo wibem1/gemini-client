@@ -252,6 +252,8 @@
     .bubble-user, .bubble-bot, textarea#user-text { font-size:16px; }
     textarea#user-text { min-height:44px; }
     #status { padding:8px 16px; font-size:14px; background:#f1f5f9; color:#334155; overflow-wrap:anywhere; }
+    .modal-card input[type="checkbox"] {width:20px;height:20px;padding:0;vertical-align:middle;margin-right:8px;}
+    .capabilities label {display:block;font-size:16px;line-height:1.5;}
     #request-progress {padding:8px 16px;font-size:14px;color:#334155;background:#eff6ff;overflow-wrap:anywhere;}
     #status.error { color:#9f1239; background:#fff1f2; }
     #status:empty { display:none; }
@@ -348,7 +350,7 @@
     <header>
       <div class="header-left">
         <button class="touch-btn" aria-label="Menü öffnen" onclick="openSidebar()">☰</button>
-        <span class="brand">KI Workspace <small>2.2.1</small></span>
+        <span class="brand">KI Workspace <small>2.3.0</small></span>
 
         <!-- Dropdowns -->
         <select aria-label="Anbieter" id="sel-provider" class="ctrl-select" onchange="filterModels(true)"></select>
@@ -409,7 +411,13 @@
         <label for="input-mem" style="font-size:14px; color:var(--muted); display:block; margin-bottom:4px;">Zusätzliche Angaben an die KI</label>
         <textarea id="input-mem" rows="4" placeholder="Instruktionen für die KI..."></textarea>
       </div>
-      <details class="capabilities"><summary>Dateifunktionen dieser Version</summary><p>Lesen: PDF, Word (DOCX), Excel (XLSX), MIDI, Bilder und Textdateien. Bis zu acht Anhänge, je 16 MB.</p><p>Erzeugen: PDF, DOCX, XLSX, MIDI und Textdateien. Word/PDF werden aus den bearbeiteten Inhalten neu erstellt. Excel kann gezielt in einer Kopie der hochgeladenen Datei bearbeitet werden.</p><p>Gespeichert wird auf diesem Gerät. Keine automatische Synchronisation. Audio, Video, freie Programmausführung und Bildgenerierung sind noch nicht enthalten.</p></details>
+      <details class="capabilities"><summary>Kosten und Antwortumfang</summary>
+        <label><input type="checkbox" id="input-concise"> Knappe Erklärungen bevorzugen</label>
+        <p class="hint">Vollständige Dateien und ausdrücklich gewünschte Details bleiben erhalten.</p>
+        <label><input type="checkbox" id="input-cache"> Claude-Cache für längere Chats verwenden</label>
+        <p class="hint">Kann wiederholte Eingaben verbilligen. Das erstmalige Speichern kostet extra; der Cache gilt normalerweise fünf Minuten. Für einzelne Anfragen ausgeschaltet lassen. Modell und Chatinhalt bleiben gleich.</p>
+      </details>
+      <details class="capabilities"><summary>Dateifunktionen dieser Version</summary><p>Lesen: PDF, Word (DOCX), Excel (XLSX), MIDI, Bilder und Textdateien. Bis zu acht Anhänge, je 16 MB.</p><p>Erzeugen: PDF, DOCX, XLSX, MIDI und Textdateien. Word/PDF werden aus den bearbeiteten Inhalten neu erstellt. Excel kann gezielt in einer Kopie der hochgeladenen Datei bearbeitet werden.</p><p>Gespeichert wird auf diesem Gerät. Keine automatische Synchronisation. Bilder werden unter „Bild erzeugen / bearbeiten“ erstellt. Audio, Video und freie Programmausführung sind noch nicht enthalten.</p></details>
       <div style="display:flex; justify-content:flex-end;">
         <button class="touch-btn" onclick="cancelModal()">Schließen</button>
         <button class="touch-btn" style="background:var(--primary); color:#fff; border:none;" onclick="closeModal()">Speichern</button>

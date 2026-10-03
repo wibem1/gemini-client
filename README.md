@@ -1,4 +1,4 @@
-# KI Workspace 2.2.1
+# KI Workspace 2.3.0
 
 Stand: 03.10.2026. Installierbare Chat-App mit OpenRouter-Modellwahl, gespeicherten Chats, mehreren Anhängen und lokal erzeugten Ergebnisdateien.
 
@@ -98,3 +98,14 @@ Dies stellt die Bildkommunikation bereit, bedeutet aber noch keine vollständige
 ## Laufzeit und Abbrechen (2.2.1, 03.10.2026)
 
 Die App beendet Chat- und Bildanfragen nicht mehr automatisch nach fünf Minuten. Eine Laufzeitanzeige zählt ab dem Senden und verschwindet nach Abschluss, Fehler oder manuellem Abbruch. **Stoppen** bricht die Browser-Anfrage ab und erhält bereits empfangenen Text als unvollständige Antwort. Es gibt keine automatische Wiederholung. Netzwerk, Browser, OpenRouter oder Modellanbieter können Anfragen unabhängig davon beenden; die App kann deren Grenzen nicht aufheben. Ein manueller Abbruch garantiert nicht, dass beim Anbieter keine weiteren Kosten entstehen. Die 20-Sekunden-Grenzen für Modelllisten und Schlüsselprüfung sowie der begrenzte lokale MIDI-Konverter betreffen keine KI-Generierung und bleiben bestehen.
+
+## Kosten (2.3.0, 03.10.2026)
+
+- Die Dateianweisungen enthalten weiter alle unterstützten Schemata, wurden aber von 3.733 auf 2.080 Zeichen verkürzt (44 Prozent weniger Zusatztext; keine Zusage gleicher prozentualer Token- oder Rechnungssenkung).
+- Ein unveränderter Textanhang mit derselben Dateikennung wird pro Anfrage nur einmal vollständig übertragen. Weitere Anhänge derselben Datei enthalten einen Verweis auf die bereits mitgelieferte Fassung. Bilder bleiben vollständig enthalten. Der Chatverlauf wird weder abgeschnitten noch durch KI-Zusammenfassungen ersetzt.
+- Kostenanzeige: Eingabe, Ausgabe, davon Denktokens, aus Cache gelesene Tokens und Cache-Schreibtokens, soweit OpenRouter diese Werte liefert. Denktokens sind Teil der Ausgabe, Cache-Lesetokens Teil der Eingabe; sie werden nicht erneut zur Summe addiert. Fehlende Detailwerte werden nicht geschätzt. Angezeigt wird weiterhin die von OpenRouter gemeldete Rechnung.
+- Einstellungen → **Kosten und Antwortumfang**: Knappe Erklärungen bevorzugen (optional, vollständige Dateidaten bleiben erhalten); **Claude-Cache für längere Chats verwenden** (optional, standardmäßig aus). Eine einzelne explizite 5-Minuten-Cachemarkierung wird nur bei Anthropic-Modellen und langen unveränderten Präfixen verwendet. Textlänge ist ein konservativer Vorfilter, keine exakte Tokenzählung; der Anbieter entscheidet, ob die Cache-Mindestgröße erfüllt ist. Erstmaliges Schreiben kostet extra, tatsächliche Folgerunden können günstiger werden. Keine Garantie eines Cache-Treffers. Die Einstellungen werden auf diesem Gerät gespeichert.
+- Eine konstante Chat-Sitzungskennung unterstützt OpenRouters automatische Wiederverwendung geeigneter Anbieter-Caches. Kein automatischer Modellwechsel, keine Drosselung des Denkaufwands, keine neue Ausgabelängenbegrenzung und keine zusätzlichen kostenpflichtigen KI-Aufrufe.
+- Bei teuren Modellen bleibt insbesondere längere Ausgabe teuer. Die technische Prüfung bestätigt keine tatsächliche Ersparnis einer bezahlten Modellanfrage.
+
+Referenz: https://openrouter.ai/docs/guides/best-practices/prompt-caching

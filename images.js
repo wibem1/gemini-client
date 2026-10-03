@@ -6,7 +6,7 @@ function availableModels(){return imageMode()?imageCatalog:modelCatalog;}
 function modelPreference(){return imageMode()?'or_image_model':'or_model';}
 function changeWorkMode(){if(busy)return;setStorage('or_mode',$('work-mode').value);setupDropdowns();$('web-search').disabled=imageMode();$('user-text').placeholder=imageMode()?'Bild beschreiben oder Änderung angeben …':'Nachricht eingeben …';}
 async function fetchImageModels(){
- try{const r=await request('images/models',{signal:AbortSignal.timeout(20000)});const d=await r.json();if(!Array.isArray(d.data))throw new Error('Keine Bildmodelle geliefert.');imageCatalog=d.data.map(m=>({id:m.id,name:m.name,provider:m.id.split('/')[0],inputs:m.architecture?.input_modalities || ['text'],outputs:['image'],parameters:m.supported_parameters || {}}));setStorage('or_image_catalog',JSON.stringify(imageCatalog));if(imageMode()){setupDropdowns();if(!busy)status(imageCatalog.length+' Bildmodelle von OpenRouter geladen.');}}
+ try{const r=await request('images/models',{signal:AbortSignal.timeout(20000)});const d=await r.json();if(!Array.isArray(d.data))throw new Error('Keine Bildmodelle geliefert.');imageCatalog=d.data.map(m=>({id:m.id,name:m.name,provider:m.id.split('/')[0],inputs:m.architecture?.input_mo…48 tokens truncated…mageCatalog.length+' Bildmodelle von OpenRouter geladen.');}}
  catch(e){if(imageMode())status('Bildmodelle konnten nicht geladen werden. '+e.message,true);}
 }
 async function imageBlob(url){
@@ -54,7 +54,7 @@ function enableImageInput(){
 }
 
 async function prepareChatMessages(history){
- const messages=await Promise.all(history.map(messageForAPI));
+ const messages=[],seenTextFiles=new Set();for(const message of history)messages.push(await messageForAPI(message,seenTextFiles));
  const last=history.at(-1);if(last?.role!=='user'||last.attachments?.some(a=>a.hasImages))return messages;
  const previous=[...history].reverse().find(m=>m.role==='assistant'&&m.attachments?.some(a=>a.generated));
  if(previous){const refs=previous.attachments.filter(a=>a.generated);const target=messages.at(-1);const parts=typeof target.content==='string'?[{type:'text',text:target.content}]:target.content;parts.push({type:'text',text:'Zuletzt im Chat erzeugtes Bild für diesen Folgeauftrag:'});for(const ref of refs){const record=await getFileRecord(ref.id);if(!record)throw new Error('Das vorherige Ergebnisbild fehlt auf diesem Gerät.');parts.push({type:'image_url',image_url:{url:await blobDataURL(record.blob)}});}target.content=parts;}
