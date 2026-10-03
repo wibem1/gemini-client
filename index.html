@@ -288,6 +288,24 @@
     .file-card span { font-size:14px; }
     .file-card.error { color:#9f1239; }
     .bubble-bot { min-width:0; white-space:normal; }
+
+    #model-details { font-size:13px; color:var(--muted); padding:6px 16px; border-bottom:1px solid #e2e8f0; }
+    #chat-search { min-height:40px; padding:8px; font-size:16px; border:1px solid var(--border); border-radius:8px; width:100%; }
+    .chat-list-row { display:flex; gap:4px; margin-bottom:8px; }
+    .chat-list-row .chat-item { flex:1; width:auto; min-width:0; margin:0; }
+    .chat-list-row .delete-chat { border:0; background:transparent; color:var(--muted); padding:8px; font-size:16px; cursor:pointer; }
+    #file-indicator { gap:6px; flex-wrap:wrap; font-size:14px !important; }
+    .attachment-chip { display:flex; align-items:center; gap:4px; padding:3px 8px; border-radius:8px; background:#fff; border:1px solid var(--border); max-width:100%; }
+    .attachment-chip span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .attachment-chip .touch-btn { min-height:28px; padding:2px 6px; border:0; }
+    .source-file { margin-top:8px; margin-right:6px; font-size:14px; }
+    .web-toggle { display:flex; flex-wrap:wrap; align-items:center; gap:6px; font-size:14px; padding:4px; color:#334155; }
+    .web-toggle small { font-size:12px; color:var(--muted); }
+    .web-toggle input { accent-color:var(--primary); width:17px; height:17px; }
+    .capabilities { font-size:14px; color:var(--muted); line-height:1.5; }
+    .capabilities p { margin-top:8px; }
+    .sources { font-size:14px; margin-top:12px; }
+    .sources a { display:block; margin:4px 0; overflow-wrap:anywhere; }
   </style>
 </head>
 <body>
@@ -302,10 +320,13 @@
       <button class="touch-btn" onclick="closeSidebar()">✕</button>
     </div>
     <button class="btn-side" onclick="newChat()">+ Neuer Chat</button>
+    <input id="chat-search" type="search" placeholder="Chats durchsuchen" aria-label="Chats durchsuchen" oninput="renderChatList()">
     <div id="chat-list" style="flex:1;overflow:auto" aria-label="Gespeicherte Chats"></div>
 <button id="install-button" class="btn-side" onclick="installApp()">App installieren</button>
     <button class="btn-side" onclick="exportMarkdown()">Markdown-Export</button>
-    <button class="btn-side" onclick="exportJson()">JSON-Backup</button>
+    <button class="btn-side" onclick="exportWorkspace()">Backup mit Dateien speichern</button>
+    <input id="backup-picker" type="file" accept=".zip,.json" hidden onchange="importWorkspace(event)">
+    <button class="btn-side" onclick="document.getElementById('backup-picker').click()">Backup laden</button>
     <button class="btn-side" style="color:#dc2626;" onclick="clearHistory()">Verlauf leeren</button>
   </aside>
 
@@ -314,7 +335,7 @@
     <header>
       <div class="header-left">
         <button class="touch-btn" aria-label="Menü öffnen" onclick="openSidebar()">☰</button>
-        <span class="brand">KI Workspace <small>1.1.0</small></span>
+        <span class="brand">KI Workspace <small>2.0.0</small></span>
 
         <!-- Dropdowns -->
         <select aria-label="Anbieter" id="sel-provider" class="ctrl-select" onchange="filterModels(true)"></select>
@@ -326,7 +347,8 @@
       <button class="touch-btn" aria-label="Einstellungen" onclick="openModal()">⚙</button>
     </header>
 
-<div id="status" role="status" aria-live="polite"></div>
+<div id="model-details"></div>
+    <div id="status" role="status" aria-live="polite"></div>
     <!-- CHAT VERLAUF -->
     <main id="chat-scroll">
       <div class="chat-box" id="chat-container">
@@ -344,9 +366,10 @@
           <span id="file-name"></span>
           <strong onclick="removeFile()" style="cursor:pointer; color:red; margin-left:8px;">✕</strong>
         </div>
+        <label class="web-toggle"><input id="web-search" type="checkbox" onchange="setStorage('or_web',this.checked?'1':'0')"> Websuche <small>Zusatzkosten bei OpenRouter</small></label>
         <div class="input-row">
-          <input type="file" id="file-picker" style="display:none;" onchange="onFilePicked(event)">
-          <button class="touch-btn" aria-label="Bild oder Textdatei anhängen" onclick="document.getElementById('file-picker').click()">📎</button>
+          <input type="file" multiple id="file-picker" style="display:none;" onchange="onFilePicked(event)">
+          <button class="touch-btn" aria-label="Dateien anhängen" onclick="document.getElementById('file-picker').click()">📎</button>
           <textarea aria-label="Nachricht" id="user-text" placeholder="Nachricht eingeben..." rows="1" oninput="autoResize(this)"></textarea>
           <button id="btn-stop" class="touch-btn" onclick="stopRequest()" hidden>Stop</button>
           <button id="btn-retry" class="touch-btn" onclick="retryMessage()" hidden>Erneut versuchen</button>
@@ -371,6 +394,7 @@
         <label for="input-mem" style="font-size:14px; color:var(--muted); display:block; margin-bottom:4px;">Zusätzliche Angaben an die KI</label>
         <textarea id="input-mem" rows="4" placeholder="Instruktionen für die KI..."></textarea>
       </div>
+      <details class="capabilities"><summary>Dateifunktionen dieser Version</summary><p>Lesen: PDF, Word (DOCX), Excel (XLSX), MIDI, Bilder und Textdateien. Bis zu acht Anhänge, je 16 MB.</p><p>Erzeugen: PDF, DOCX, XLSX, MIDI und Textdateien. Word/PDF werden aus den bearbeiteten Inhalten neu erstellt. Excel kann gezielt in einer Kopie der hochgeladenen Datei bearbeitet werden.</p><p>Gespeichert wird auf diesem Gerät. Keine automatische Synchronisation. Audio, Video, freie Programmausführung und Bildgenerierung sind noch nicht enthalten.</p></details>
       <div style="display:flex; justify-content:flex-end;">
         <button class="touch-btn" onclick="cancelModal()">Schließen</button>
         <button class="touch-btn" style="background:var(--primary); color:#fff; border:none;" onclick="closeModal()">Speichern</button>
@@ -381,6 +405,7 @@
   <script src="vendor/marked.js" defer></script>
   <script src="vendor/purify.js" defer></script>
   <script src="files.js" defer></script>
+  <script src="uploads.js" defer></script>
   <script src="app.js" defer></script>
 </body>
 </html>

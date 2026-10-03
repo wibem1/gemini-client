@@ -1,0 +1,24 @@
+{
+  "dependencies": {
+    "@pdf-lib/fontkit": "^1.1.1",
+    "docx": "^9.8.1",
+    "esbuild": "^0.28.2",
+    "exceljs": "^4.4.0",
+    "mammoth": "^1.13.0",
+    "midi-file": "^1.2.4",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^6.3.289"
+  },
+  "devDependencies": {
+    "fake-indexeddb": "^6.2.5",
+    "jsdom": "^30.1.1"
+  },
+  "name": "gemini-client",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:files": "node scripts/build-files.mjs",
+    "test": "node tests/file-workflow.test.mjs"
+  }
+}

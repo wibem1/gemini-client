@@ -1,5 +1,5 @@
 'use strict';
-const VERSION = '1.1.0';
+const VERSION = '2.0.0';
 const $ = id => document.getElementById(id);
 const fallbackStore = {};
 let storageWarning = false;
@@ -19,7 +19,7 @@ let chats = readJSON('or_chats',[]);
 if (!Array.isArray(chats)) chats=[];
 chats=chats.filter(c=>c && typeof c.id==='string' && Array.isArray(c.messages));
 let currentId=getStorage('or_current');
-let currentAttachment=null, controller=null, busy=false, installPrompt=null;
+let controller=null, busy=false, installPrompt=null;
 let retryAvailable=false;
 function currentChat() { return chats.find(c=>c.id===currentId); }
 function createChat() { const c={id:crypto.randomUUID(), title:'Neuer Chat', messages:[],updated:Date.now()}; chats.unshift(c);currentId=c.id;return c; }
@@ -79,13 +79,14 @@ function filterModels(userChange=false,wanted=getStorage('or_model')) {
   for(const m of modelCatalog.filter(m=>m.provider===$('sel-provider').value).sort((a,b)=>a.name.localeCompare(b.name))) select.add(new Option(m.name,m.id));
   if([...select.options].some(o=>o.value===wanted)) select.value=wanted;
   if(userChange || !wanted) saveModelChoice();
+  updateModelDetails();
 }
-function saveModelChoice() { if($('sel-model').value) setStorage('or_model',$('sel-model').value); }
+function saveModelChoice() { if($('sel-model').value) setStorage('or_model',$('sel-model').value);updateModelDetails(); }
 async function fetchLiveModels(quiet=false) {
   try {
     const r=await request('models',{signal:AbortSignal.timeout(20000)});const d=await r.json();
     if(!Array.isArray(d.data)) throw new Error('OpenRouter hat keine Modellliste geliefert.');
-    const list=d.data.filter(m=>(m.architecture?.output_modalities || ['text']).includes('text')).map(m=>({id:m.id,name:m.name || m.id,provider:m.id.split('/')[0],inputs:m.architecture?.input_modalities || ['text'],context_length:m.context_length}));
+    const list=d.data.filter(m=>(m.architecture?.output_modalities || ['text']).includes('text')).map(m=>({id:m.id,name:m.name || m.id,provider:m.id.split('/')[0],inputs:m.architecture?.input_modalities || ['text'],context_length:m.context_length,pricing:m.pricing}));
     if(!list.length) throw new Error('Keine Chatmodelle gefunden.');
     setStorage('or_catalog',JSON.stringify(list));setupDropdowns(list);
     if(!busy) status(`${list.length} Chatmodelle von OpenRouter geladen.`);
@@ -93,20 +94,10 @@ async function fetchLiveModels(quiet=false) {
     if(!busy) status('Modellliste konnte nicht aktualisiert werden. '+e.message+(modelCatalog.length?' Die gespeicherte Liste bleibt verfügbar.':''),true);
   }
 }
-async function onFilePicked(e) {
-  const f=e.target.files[0];if(!f)return;
-  if(f.size>8*1024*1024) { status('Bitte eine Datei mit höchstens 8 MB wählen.',true);removeFile();return; }
-  const textFile=/\.(txt|md|json|jsonl|csv|tsv|html|xml|abc|ly|js|ts|py|lua|css|log|yaml|yml)$/i.test(f.name) || f.type.startsWith('text/');
-  if(!f.type.startsWith('image/') && !textFile) { status('Hier werden Bilder und Textdateien unterstützt. PDF-, Audio- und Office-Dateien bitte vorher in ein passendes Format umwandeln.',true);removeFile();return; }
-  $('btn-send').disabled=true;
-  try {
-    const data=f.type.startsWith('image/')?await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(new Error('Die Datei konnte nicht gelesen werden.'));r.readAsDataURL(f);}):await f.text();
-    currentAttachment={type:f.type.startsWith('image/')?'image':'text',name:f.name,data};
-    $('file-name').textContent=f.name;$('file-indicator').style.display='block';
-  } catch(err) { status(err.message,true); } finally { $('btn-send').disabled=busy; }
-}
-function removeFile() { currentAttachment=null;$('file-picker').value='';$('file-indicator').style.display='none'; }
-function autoResize(el) { el.style.height='auto';el.style.height=Math.min(el.scrollHeight,120)+'px'; }
+async function onFilePicked(e) { await pickAttachments(e); }
+function removeFile() { clearPendingAttachments(); }
+
+function autoResize(el) { el.style.height='auto';el.style.height=Math.min(el.scrollHeight,120)+'px';setStorage('or_draft',el.value); }
 function contentText(content) { return typeof content==='string'?content:(Array.isArray(content)?content.filter(p=>p.type==='text').map(p=>p.text).join('\n'):''); }
 function renderChat(scroll=true) {
   const container=$('chat-container');container.replaceChildren();
@@ -114,7 +105,7 @@ function renderChat(scroll=true) {
   if(!chat.messages.length) {
     const welcome=document.createElement('div');welcome.style.marginTop='8vh';
     const h=document.createElement('h2');h.textContent='Hallo, Wilhelm';
-    const p=document.createElement('p');p.textContent='Wähle ein Modell und beginne den Chat.';p.className='hint';
+    const p=document.createElement('p');p.textContent='Stelle eine Frage oder hänge Dateien an. Du kannst Dokumente, Tabellen und Musik bearbeiten und fertige Dateien speichern.';p.className='hint';
     welcome.append(h,p);container.append(welcome);
   }
   for(const msg of chat.messages) {
@@ -124,26 +115,45 @@ function renderChat(scroll=true) {
     if(msg.role==='assistant') { const meta=document.createElement('div');meta.className='msg-meta';meta.textContent=(msg.model || 'KI')+(msg.partial?' · unterbrochen':'');bubble.append(meta); }
     const text=document.createElement('div');if(msg.role==='assistant' && !msg.error && msg.content)renderAssistant(text,msg);else text.textContent=contentText(msg.content) || (msg.pending?'Antwort wird erstellt …':'');bubble.append(text);
     if(Array.isArray(msg.content)) for(const part of msg.content) if(part.type==='image_url' && /^data:image\/(png|jpeg|webp|gif);base64,/i.test(part.image_url?.url || '')) { const img=document.createElement('img');img.src=part.image_url.url;img.alt='Angehängtes Bild';bubble.append(img); }
+    appendAttachmentCards(bubble,msg);
+    if(msg.role==='assistant')appendSources(bubble,msg);
     row.append(bubble);container.append(row);
   }
   renderChatList();
   if(scroll) $('chat-scroll').scrollTop=$('chat-scroll').scrollHeight;
 }
 function renderChatList() {
-  const list=$('chat-list');list.replaceChildren();
+  const list=$('chat-list');list.replaceChildren();const query=($('chat-search')?.value || '').trim().toLowerCase();
   for(const chat of chats) {
+    if(query && !chat.title.toLowerCase().includes(query) && !chat.messages.some(m=>contentText(m.content).toLowerCase().includes(query)))continue;
+    const row=document.createElement('div');row.className='chat-list-row';
     const button=document.createElement('button');button.className='btn-side chat-item'+(chat.id===currentId?' active':'');button.textContent=chat.title;button.disabled=busy;
-    button.onclick=()=>{if(busy)return;currentId=chat.id;retryAvailable=false;$('btn-retry').hidden=true;persist();renderChat();closeSidebar();};list.append(button);
+    button.onclick=()=>{if(busy || picking)return;currentId=chat.id;retryAvailable=false;$('btn-retry').hidden=true;persist();renderChat();closeSidebar();};
+    const del=document.createElement('button');del.className='delete-chat';del.textContent='×';del.setAttribute('aria-label',chat.title+' löschen');del.disabled=busy;
+    del.onclick=()=>{if(busy || picking || !confirm('Diesen Chat löschen?'))return;chats=chats.filter(c=>c.id!==chat.id);if(!currentChat()){currentId=chats[0]?.id;if(!currentChat())createChat();}persist();renderChat();};
+    row.append(button,del);list.append(row);
   }
 }
-function newChat() { if(busy)return;createChat();persist();renderChat();removeFile();closeSidebar();retryAvailable=false;$('btn-retry').hidden=true; }
-function clearHistory() { if(busy)return;if(!confirm('Alle gespeicherten Chats auf diesem Gerät löschen?'))return;chats=[];createChat();persist();renderChat();closeSidebar(); }
+function newChat() { if(busy || picking)return;createChat();persist();renderChat();removeFile();$('user-text').value='';autoResize($('user-text'));closeSidebar();retryAvailable=false;$('btn-retry').hidden=true; }
+function clearHistory() { if(busy || picking)return;if(!confirm('Alle gespeicherten Chats und Anhangsdateien auf diesem Gerät löschen?'))return;chats=[];createChat();persist();renderChat();removeFile();fileOperation('readwrite',store=>store.clear()).catch(e=>status(e.message,true));closeSidebar(); }
+function updateModelDetails() {
+  const model=modelCatalog.find(m=>m.id===$('sel-model').value);if(!model)return;
+  const detail=[model.inputs?.includes('image')?'Text und Bilder':'Text'];
+  if(model.context_length)detail.push('Kontext: '+Number(model.context_length).toLocaleString('de-DE')+' Tokens');
+  if(model.pricing?.prompt!==undefined && model.pricing?.completion!==undefined){const input=Number(model.pricing.prompt)*1e6,output=Number(model.pricing.completion)*1e6;if(Number.isFinite(input)&&Number.isFinite(output))detail.push(`pro 1 Mio. Tokens: $${input.toFixed(2)} Eingabe / $${output.toFixed(2)} Ausgabe`);}
+  $('model-details').textContent=detail.join(' · ');
+}
+function appendSources(container,msg) {
+ const citations=(msg.annotations || []).map(a=>a.url_citation).filter(c=>c && /^https?:\/\//i.test(c.url || ''));
+ if(citations.length){const sources=document.createElement('div');sources.className='sources';const title=document.createElement('strong');title.textContent='Quellen';sources.append(title);for(const citation of [...new Map(citations.map(c=>[c.url,c])).values()]){const a=document.createElement('a');a.href=citation.url;a.textContent=citation.title || citation.url;a.target='_blank';a.rel='noopener noreferrer';sources.append(a);}container.append(sources);}
+ if(msg.usage){const info=document.createElement('div');info.className='msg-meta';const parts=[];if(msg.usage.total_tokens)parts.push(Number(msg.usage.total_tokens).toLocaleString('de-DE')+' Tokens');if(typeof msg.usage.cost==='number')parts.push('$'+msg.usage.cost.toFixed(5));info.textContent=parts.join(' · ');container.append(info);}
+}
 function setBusy(value) {
   busy=value;for(const id of ['btn-send','sel-provider','sel-model','file-picker']) $(id).disabled=value;
   $('btn-stop').hidden=!value;$('btn-retry').hidden=value || !retryAvailable;renderChatList();
 }
 function stopRequest() { controller?.abort(); }
-async function consumeStream(response,onDelta) {
+async function consumeStream(response,onDelta,onMeta=()=>{}) {
   if(!response.body) throw new Error('Der Browser unterstützt den Antwortstrom nicht.');
   const reader=response.body.getReader(),decoder=new TextDecoder();let buffer='',doneMarker=false;
   function line(value) {
@@ -152,6 +162,7 @@ async function consumeStream(response,onDelta) {
     if(data==='[DONE]') { doneMarker=true;return; }
     let event;try { event=JSON.parse(data); } catch { throw new Error('OpenRouter lieferte eine ungültige Antwort.'); }
     if(event.error) throw new Error(errorMessage(event.error.code,event.error.message));
+    onMeta(event);
     const choice=event.choices?.[0];
     if(choice?.finish_reason==='error') throw new Error('OpenRouter hat die Generierung mit einem Fehler beendet.');
     if(typeof choice?.delta?.content==='string')onDelta(choice.delta.content,event.model);
@@ -167,39 +178,38 @@ async function consumeStream(response,onDelta) {
   } finally { reader.releaseLock(); }
 }
 async function sendMessage(retry=false) {
-  if(busy)return;
+  if(busy || picking)return;
   const key=getStorage('or_key'),model=$('sel-model').value;
   if(!key) { openModal();status('Bitte den OpenRouter-Schlüssel in den Einstellungen speichern.',true);return; }
   if(!model) { status('Bitte zuerst die Modellliste laden.',true);return; }
   const chat=currentChat();
-  if(chat.messages.some(m=>!m.error && Array.isArray(m.content) && m.content.some(p=>p.type==='image_url')) && !modelCatalog.find(m=>m.id===model)?.inputs?.includes('image')) { status('Dieser Chat enthält Bilder. Bitte ein Modell mit Bildunterstützung wählen oder einen neuen Chat beginnen.',true);return; }
+  const imageHistory=chat.messages.some(m=>!m.error && ((Array.isArray(m.content) && m.content.some(p=>p.type==='image_url')) || m.attachments?.some(a=>a.hasImages)));
+  if((imageHistory || pendingAttachments.some(a=>a.hasImages)) && !modelCatalog.find(m=>m.id===model)?.inputs?.includes('image')) { status('Dieser Auftrag enthält Bilder oder eingescannte PDF-Seiten. Bitte ein Modell mit Bildunterstützung wählen.',true);return; }
   if(!retry) {
-    const text=$('user-text').value.trim();if(!text && !currentAttachment)return;
-    if(currentAttachment?.type==='image' && !modelCatalog.find(m=>m.id===model)?.inputs?.includes('image')) { status('Dieses Modell kann keine Bilder lesen. Bitte ein Modell mit Bildunterstützung wählen.',true);return; }
-    let content=text;
-    if(currentAttachment?.type==='text')content=`[Datei: ${currentAttachment.name}]\n${currentAttachment.data}\n\n${text}`;
-    if(currentAttachment?.type==='image')content=[{type:'text',text:text || 'Bitte betrachte dieses Bild.'},{type:'image_url',image_url:{url:currentAttachment.data}}];
-    chat.messages.push({role:'user',content});
-    if(chat.messages.length===1)chat.title=(text || currentAttachment?.name || 'Chat').slice(0,70);
+    const text=$('user-text').value.trim();if(!text && !pendingAttachments.length)return;
+    const attachments=pendingAttachments.map(a=>({...a}));
+    chat.messages.push({role:'user',content:text,attachments});
+    if(chat.messages.length===1)chat.title=(text || attachments[0]?.name || 'Chat').slice(0,70);
     $('user-text').value='';autoResize($('user-text'));removeFile();
   } else {
-    const last=chat.messages.at(-1);if(!last || !(last.error || last.partial))return;
-    chat.messages.pop();
+    const last=chat.messages.at(-1);if(!last || !(last.error || last.partial))return;chat.messages.pop();
   }
-  // Only complete conversational messages are sent. UI error messages never become AI context.
-  const messages=chat.messages.filter(m=>!m.error && !m.partial && !m.pending).map(m=>({role:m.role,content:m.content}));
-  const mem=getStorage('or_mem').trim();messages.unshift({role:'system',content:FILE_CAPABILITIES+(mem?'\n\nZusätzliche Angaben des Nutzers:\n'+mem:'')});
-  const bot={role:'assistant',content:'',model,pending:true};chat.messages.push(bot);chat.updated=Date.now();
-  controller=new AbortController();retryAvailable=false;setBusy(true);renderChat();persist();status('Antwort wird erstellt …');
-  // A timeout aborts this request once; no automatic paid retries.
+  const bot={id:crypto.randomUUID(),role:'assistant',content:'',model,pending:true};chat.messages.push(bot);chat.updated=Date.now();
+  controller=new AbortController();retryAvailable=false;setBusy(true);renderChat();persist();status('Dateien und Auftrag werden vorbereitet …');
   const timeout=setTimeout(()=>controller?.abort('timeout'),300000);
   try {
-    const response=await request('chat/completions',{key,body:{model,messages,stream:true},signal:controller.signal});
+    const messages=await Promise.all(chat.messages.filter(m=>!m.error && !m.partial && !m.pending).map(messageForAPI));
+    if(controller.signal.aborted)throw new DOMException('Abgebrochen','AbortError');
+    const textLength=messages.reduce((sum,m)=>sum+contentText(m.content).length,0);const context=modelCatalog.find(m=>m.id===model)?.context_length;
+    if(context && textLength>context*3)throw new Error('Dieser Chat mit seinen Dateien ist für den Kontext des Modells zu groß. Bitte ein Modell mit größerem Kontext oder einen neuen Chat mit einem Ausschnitt verwenden. Es wurde nichts gekürzt.');
+    const mem=getStorage('or_mem').trim();messages.unshift({role:'system',content:FILE_CAPABILITIES+'\n'+WORKSPACE_CAPABILITIES+(mem?'\n\nZusätzliche Angaben des Nutzers:\n'+mem:'')});
+    const web=$('web-search').checked;status(web?'Websuche und Antwort werden angefordert …':'Antwort wird erstellt …');
+    const response=await request('chat/completions',{key,body:{model,messages,stream:true,stream_options:{include_usage:true},plugins:web?[{id:'web',max_results:3}]:[{id:'web',enabled:false}]},signal:controller.signal});
     if(response.headers.get('content-type')?.includes('text/event-stream')) {
-      await consumeStream(response,(delta,actualModel)=>{bot.content+=delta;if(actualModel)bot.model=actualModel;renderChat();});
+      await consumeStream(response,(delta,actualModel)=>{bot.content+=delta;if(actualModel)bot.model=actualModel;renderChat();},event=>{if(event.usage)bot.usage=event.usage;const annotations=event.choices?.[0]?.delta?.annotations || event.choices?.[0]?.message?.annotations;if(annotations)bot.annotations=[...(bot.annotations || []),...annotations];});
     } else {
       const data=await response.json();if(data.error)throw new Error(errorMessage(data.error.code,data.error.message));
-      bot.content=contentText(data.choices?.[0]?.message?.content);bot.model=data.model || model;
+      bot.content=contentText(data.choices?.[0]?.message?.content);bot.model=data.model || model;bot.usage=data.usage;bot.annotations=data.choices?.[0]?.message?.annotations;
     }
     if(!bot.content)throw new Error('OpenRouter lieferte keine Textantwort. Bitte ein anderes Chatmodell wählen.');
     status('Antwort vollständig.');
@@ -209,9 +219,7 @@ async function sendMessage(retry=false) {
     if(bot.content) { bot.partial=true;status(detail+' Die bisherige Antwort bleibt erhalten.',true); }
     else { bot.error=true;bot.content=detail;status(detail,true); }
     retryAvailable=true;
-  } finally {
-    clearTimeout(timeout);bot.pending=false;controller=null;persist();setBusy(false);renderChat();
-  }
+  } finally { clearTimeout(timeout);bot.pending=false;controller=null;persist();setBusy(false);renderChat(); }
 }
 function retryMessage() { if(retryAvailable)sendMessage(true); }
 function download(name,data,type) { const url=URL.createObjectURL(new Blob([data],{type}));const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000); }
@@ -231,6 +239,9 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){cancelModal();close
 window.addEventListener('pagehide',persist);
 // Recover an interrupted session without sending the incomplete answer back to the model.
 for(const chat of chats)for(const m of chat.messages)if(m.pending){m.pending=false;if(m.content)m.partial=true;else{m.error=true;m.content='Die vorherige Anfrage wurde beim Schließen unterbrochen.';}}
+$('web-search').checked=getStorage('or_web')==='1';
+$('user-text').value=getStorage('or_draft');autoResize($('user-text'));
+pendingAttachments=readJSON('or_pending',[]);if(!Array.isArray(pendingAttachments))pendingAttachments=[];renderAttachments();
 renderChat();persist();
 (async()=>{
   if(!modelCatalog.length)try { const r=await fetch('models.json');if(!r.ok)throw new Error();setupDropdowns(await r.json()); } catch { status('Keine Modellliste verfügbar. Bitte Internetverbindung prüfen.',true); }
