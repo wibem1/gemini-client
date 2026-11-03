@@ -21,3 +21,14 @@ Implementiert:
 Prüfstatus: Isolierter Node.js-Zoomlogiktest am 03.11.2026 erfolgreich (gleiche Testlogik lokal ausgeführt); Einbindung und Offline-Cache statisch geprüft. Vollständiges `npm test` und Browserprüfung auf iOS/Safari oder Desktop noch offen.
 
 Nächster Schritt: Veröffentlichung auf privater ChatGPT-Site gesondert prüfen; GitHub-Merge allein aktualisiert diese Site nicht nachweislich. Browserprüfung und vollständige Tests nachholen.
+
+## Korrektur 03.11.2026 – Eingabezeile bei vergrößertem Zoom
+Branch: `fix/zoom-composer-viewport-20261103` (noch nicht veröffentlicht).
+
+Fehlerursache: CSS-Zoom auf dem Dokument vergrößerte die 100dvh-Arbeitsfläche über den sichtbaren Viewport hinaus; das Eingabefeld wurde unten abgeschnitten.
+
+Implementiert: CSS-Variable `--ui-zoom` synchron zur Zoomstufe; Höhe von Dokument und Workspace wird durch den Zoomfaktor geteilt, Chat-Scrollbereich erhält `min-height: 0`. Regressionstest für die Zoomvariable und strukturelle CSS-Prüfungen ergänzt.
+
+Prüfstatus: Code und CSS auf dem Entwicklungsbranch statisch gegengeprüft. Vollständiges npm test und tatsächlicher Browsertest bei 70–150 %, verschiedenen Fensterhöhen und eingeblendeter Bildschirmtastatur noch offen. Noch keine Freigabe / Veröffentlichung; bestehende Site unverändert.
+
+Nächster Schritt: automatisierte Tests und tatsächlichen Browserlayouttest durchführen, dann Merge und Veröffentlichung auf bestehender privater Site gesondert prüfen.
