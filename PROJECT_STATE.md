@@ -43,3 +43,6 @@ Zoom-Eingabezeilenkorrektur aus PR #2 in `main` integriert, Merge-Commit `16c0ff
 - Vollständiges `npm test` erfolgreich; fehlerhaft doppelt maskierte reguläre Ausdrücke im Zoomtest korrigiert (keine Änderung des App-Verhaltens).
 - Vollständige App in Chromium geprüft: 150 % Zoom, Viewport 1363×936; Eingabefeld vollständig sichtbar (Unterkante 926 px), Senden-Button sichtbar. Zoom bleibt nach Neuladen bei 150 %.
 - Veröffentlichung auf bestehender owner-privater Site `appgprj_6ac0ecbb1140819190dd30a72a2cddca` vorbereitet. Gleiche URL und Speicherschlüssel; keine Löschung oder Migration von localStorage/IndexedDB. Prüfung betrifft Desktop-Chromium, nicht mobile Safari/Bildschirmtastatur.
+
+## Veröffentlichung abgeschlossen 03.11.2026
+Sites bestätigt `succeeded`: https://gemini-client-chat.wibem1.chatgpt.site . Veröffentlichter Hosting-Commit `73c27ec60abe136d96ccec557adcaa2243a6a0f5`, App-Version 2.4.1 mit Zoomkorrektur. Bestehende Site und privater Zugriff beibehalten. Live-Aufruf zeigt erwartete Anmeldung; 150-%-Layoutprüfung erfolgte zuvor an denselben vollständigen App-Dateien in der lokalen Browservorschau. Kein Zugriff auf die Browserdaten des Benutzers und keine Datenlöschung.
