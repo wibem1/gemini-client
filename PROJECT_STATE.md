@@ -32,3 +32,6 @@ Implementiert: CSS-Variable `--ui-zoom` synchron zur Zoomstufe; Höhe von Dokume
 Prüfstatus: Code und CSS auf dem Entwicklungsbranch statisch gegengeprüft. Vollständiges npm test und tatsächlicher Browsertest bei 70–150 %, verschiedenen Fensterhöhen und eingeblendeter Bildschirmtastatur noch offen. Noch keine Freigabe / Veröffentlichung; bestehende Site unverändert.
 
 Nächster Schritt: automatisierte Tests und tatsächlichen Browserlayouttest durchführen, dann Merge und Veröffentlichung auf bestehender privater Site gesondert prüfen.
+
+## Zusätzliche Layoutprüfung 03.11.2026
+Eine isolierte Nachbildung der relevanten HTML-/CSS-Struktur wurde im echten Chromium mittels Playwright mit 1280×800, 800×600, 390×844 und 390×480 Pixel sowie 70 %, 100 %, 130 % und 150 % CSS-Zoom geprüft (16 Kombinationen). Der untere Rand des Eingabefeld-Footers stimmte jeweils mit dem Viewportrand überein, während der Chatbereich schrumpfte. Der Browser akzeptierte `calc(100dvh / 1.5)`. **Prüfumfang:** Layoutsimulation; keine vollständige echte App mit allen Header-Elementen, keine mobile Safari-/Tastaturprüfung und kein kompletter npm-Testlauf. Die Veröffentlichung auf der privaten Site ist weiterhin unbestätigt.
