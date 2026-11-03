@@ -19,6 +19,6 @@
   "type": "module",
   "scripts": {
     "build:files": "node scripts/build-files.mjs",
-    "test": "node tests/file-workflow.test.mjs && node tests/midi-legacy.test.cjs && node tests/midi-download.test.cjs && node tests/costs.test.cjs && node tests/images.test.cjs && node tests/model-info.test.cjs"
+    "test": "node tests/file-workflow.test.mjs && node tests/midi-legacy.test.cjs && node tests/midi-download.test.cjs && node tests/costs.test.cjs && node tests/images.test.cjs && node tests/model-info.test.cjs && node tests/zoom.test.cjs"
   }
 }
