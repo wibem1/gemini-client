@@ -2,7 +2,7 @@
 let officePromise, databasePromise;
 let pendingAttachments=[];
 let picking=false;
-function officeTools() { if(!officePromise)officePromise=import('./office.mjs?v=2.4.2').catch(e=>{officePromise=null;throw new Error('Dateiverarbeitung konnte nicht geladen werden: '+e.message);});return officePromise; }
+function officeTools() { if(!officePromise)officePromise=import('./office.mjs?v=2.4.3').catch(e=>{officePromise=null;throw new Error('Dateiverarbeitung konnte nicht geladen werden: '+e.message);});return officePromise; }
 function database() {
  if(!databasePromise)databasePromise=new Promise((resolve,reject)=>{
   const req=indexedDB.open('ki-workspace-files',1);req.onupgradeneeded=()=>{req.result.createObjectStore('files',{keyPath:'id'});};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(new Error('Dateien können auf diesem Gerät nicht gespeichert werden. '+req.error?.message));

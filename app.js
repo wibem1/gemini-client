@@ -1,5 +1,5 @@
 'use strict';
-const VERSION = '2.4.2';
+const VERSION = '2.4.3';
 const $ = id => document.getElementById(id);
 const fallbackStore = {};
 let storageWarning = false;
@@ -29,10 +29,10 @@ function openSidebar() { $('sidebar').classList.add('open');$('side-backdrop').c
 function closeSidebar() { $('sidebar').classList.remove('open');$('side-backdrop').classList.remove('open'); }
 function openModal() {
   $('input-key').value=getStorage('or_key');$('input-mem').value=getStorage('or_mem');$('input-cache').checked=getStorage('or_cache')==='1';$('input-concise').checked=getStorage('or_concise')==='1';
-  $('key-result').textContent='';$('settings-modal').style.display='flex';$('input-key').focus();
+  $('input-output-limit').value=getStorage('or_output_limit') || 'auto';$('key-result').textContent='';$('settings-modal').style.display='flex';$('input-key').focus();
 }
 function cancelModal() { $('settings-modal').style.display='none'; }
-function closeModal() { setStorage('or_key',$('input-key').value.trim());setStorage('or_mem',$('input-mem').value.trim());setStorage('or_cache',$('input-cache').checked?'1':'0');setStorage('or_concise',$('input-concise').checked?'1':'0');cancelModal(); }
+function closeModal() { setStorage('or_output_limit',$('input-output-limit').value); setStorage('or_key',$('input-key').value.trim());setStorage('or_mem',$('input-mem').value.trim());setStorage('or_cache',$('input-cache').checked?'1':'0');setStorage('or_concise',$('input-concise').checked?'1':'0');cancelModal(); }
 function errorMessage(code,message) {
   const explanations={401:'Der OpenRouter-Schlüssel ist ungültig oder wurde widerrufen.',402:'Das OpenRouter-Guthaben oder das Limit dieses Schlüssels reicht nicht aus.',403:'OpenRouter verweigert diese Anfrage. Prüfe die Freigaben des Schlüssels und die Nutzungsbedingungen des gewählten Modells.',404:'Das gewählte Modell ist nicht mehr verfügbar. Bitte die Modellliste aktualisieren.',429:'Das Anfragelimit ist erreicht. Bitte später erneut versuchen.',503:'Für dieses Modell ist derzeit kein Anbieter verfügbar.'};
   return [code ? `HTTP ${code}` : '',explanations[code] || '', message || 'Unbekannter Fehler'].filter(Boolean).join(' · ');
@@ -87,7 +87,7 @@ async function fetchLiveModels(quiet=false) {
   try {
     const r=await request('models',{signal:AbortSignal.timeout(20000)});const d=await r.json();
     if(!Array.isArray(d.data)) throw new Error('OpenRouter hat keine Modellliste geliefert.');
-    const list=d.data.filter(m=>(m.architecture?.output_modalities || ['text']).includes('text')).map(m=>({id:m.id,name:m.name || m.id,provider:m.id.split('/')[0],inputs:m.architecture?.input_modalities || ['text'],outputs:m.architecture?.output_modalities || ['text'],context_length:m.context_length,pricing:m.pricing,description:m.description || ''}));
+    const list=d.data.filter(m=>(m.architecture?.output_modalities || ['text']).includes('text')).map(m=>({id:m.id,name:m.name || m.id,provider:m.id.split('/')[0],inputs:m.architecture?.input_modalities || ['text'],outputs:m.architecture?.output_modalities || ['text'],context_length:m.context_length,max_output_tokens:m.top_provider?.max_completion_tokens,pricing:m.pricing,description:m.description || ''}));
     if(!list.length) throw new Error('Keine Chatmodelle gefunden.');
     setStorage('or_catalog',JSON.stringify(list));setupDropdowns(list);
     if(!busy && !imageMode()) status(`${list.length} Chatmodelle von OpenRouter geladen.`);
@@ -148,6 +148,7 @@ function updateModelDetails() {
 function appendSources(container,msg) {
  const citations=(msg.annotations || []).map(a=>a.url_citation).filter(c=>c && /^https?:\/\//i.test(c.url || ''));
  if(citations.length){const sources=document.createElement('div');sources.className='sources';const title=document.createElement('strong');title.textContent='Quellen';sources.append(title);for(const citation of [...new Map(citations.map(c=>[c.url,c])).values()]){const a=document.createElement('a');a.href=citation.url;a.textContent=citation.title || citation.url;a.target='_blank';a.rel='noopener noreferrer';sources.append(a);}container.append(sources);}
+ if(msg.finishReason || msg.generationId){const details=document.createElement('details');details.className='msg-meta';const summary=document.createElement('summary');summary.textContent='Antwortdiagnose';details.append(summary);const info=document.createElement('div');info.textContent=['Ausgabelimit: '+(msg.requestedOutput || 'Anbieterstandard'),'Abschluss: '+(msg.finishReason || 'unbekannt'),msg.nativeFinishReason?'Anbietergrund: '+msg.nativeFinishReason:'',msg.generationId?'Anfrage: '+msg.generationId:'',!msg.usage?'Keine Verbrauchsdaten erhalten.':''].filter(Boolean).join(' · ');details.append(info);container.append(details);}
  if(msg.usage){const info=document.createElement('div');info.className='msg-meta';info.textContent=formatUsage(msg.usage);container.append(info);}
 }
 function setBusy(value) {
@@ -163,7 +164,7 @@ function startRequestProgress() {
 }
 async function consumeStream(response,onDelta,onMeta=()=>{}) {
   if(!response.body) throw new Error('Der Browser unterstützt den Antwortstrom nicht.');
-  const reader=response.body.getReader(),decoder=new TextDecoder();let buffer='',doneMarker=false;
+  const reader=response.body.getReader(),decoder=new TextDecoder();let buffer='',doneMarker=false,lengthLimited=false;
   function line(value) {
     if(!value.startsWith('data:'))return;
     const data=value.slice(5).trim();if(!data)return;
@@ -172,7 +173,7 @@ async function consumeStream(response,onDelta,onMeta=()=>{}) {
     if(event.error) throw new Error(errorMessage(event.error.code,event.error.message));
     onMeta(event);
     const choice=event.choices?.[0];
-    if(choice?.finish_reason==='length')throw new Error('Das Modell hat die Antwort wegen seiner Längenbegrenzung abgebrochen.');
+    if(choice?.finish_reason==='length')lengthLimited=true;
     if(choice?.finish_reason==='error') throw new Error('OpenRouter hat die Generierung mit einem Fehler beendet.');
     if(typeof choice?.delta?.content==='string')onDelta(choice.delta.content,event.model);
   }
@@ -183,6 +184,7 @@ async function consumeStream(response,onDelta,onMeta=()=>{}) {
       if(done)break;
     }
     if(buffer.trim())line(buffer.trim());
+    if(lengthLimited)throw new Error('OpenRouter meldet: Ausgabelimit erreicht. Sichtbarer Text und Verbrauchsdaten bleiben erhalten.');
     if(!doneMarker)throw new Error('Die Verbindung wurde vor dem Ende der Antwort geschlossen.');
   } finally { reader.releaseLock(); }
 }
@@ -204,7 +206,7 @@ async function sendMessage(retry=false) {
   } else {
     const last=chat.messages.at(-1);if(!last || !(last.error || last.partial))return;chat.messages.pop();
   }
-  const bot={id:crypto.randomUUID(),role:'assistant',content:'',model,pending:true};chat.messages.push(bot);chat.updated=Date.now();
+  const bot={id:crypto.randomUUID(),role:'assistant',content:'',model,pending:true,requestedOutput:outputOptions(model).max_tokens || null};chat.messages.push(bot);chat.updated=Date.now();
   controller=new AbortController();retryAvailable=false;setBusy(true);renderChat();persist();status('Dateien und Auftrag werden vorbereitet …');
   const finishProgress=startRequestProgress();
   try {
@@ -217,12 +219,12 @@ async function sendMessage(retry=false) {
     const mem=getStorage('or_mem').trim();messages.unshift({role:'system',content:FILE_CAPABILITIES+'\n'+WORKSPACE_CAPABILITIES+(getStorage('or_concise')==='1'?'\nAntworte in knapper Prosa, soweit der Auftrag das erlaubt; keine notwendigen Details, Analyseschritte oder Dateidaten weglassen.':'')+(mem?'\n\nZusätzliche Angaben des Nutzers:\n'+mem:'')});
     const web=$('web-search').checked;status(web?'Websuche und Antwort werden angefordert …':'Antwort wird erstellt …');
     const cacheRequested=applyPromptCaching(messages,model);bot.cacheRequested=cacheRequested;
-    const response=await request('chat/completions',{key,body:{model,messages,session_id:chat.id,stream:true,stream_options:{include_usage:true},plugins:web?[{id:'web',max_results:3}]:[{id:'web',enabled:false}]},signal:controller.signal});
+    const response=await request('chat/completions',{key,body:{model,messages,...outputOptions(model),session_id:chat.id,stream:true,stream_options:{include_usage:true},plugins:web?[{id:'web',max_results:3}]:[{id:'web',enabled:false}]},signal:controller.signal});
     if(response.headers.get('content-type')?.includes('text/event-stream')) {
-      await consumeStream(response,(delta,actualModel)=>{bot.content+=delta;if(actualModel)bot.model=actualModel;renderChat();},event=>{if(event.usage)bot.usage=event.usage;const annotations=event.choices?.[0]?.delta?.annotations || event.choices?.[0]?.message?.annotations;if(annotations)bot.annotations=[...(bot.annotations || []),...annotations];});
+      await consumeStream(response,(delta,actualModel)=>{bot.content+=delta;if(actualModel)bot.model=actualModel;renderChat();},event=>{if(event.usage)bot.usage=event.usage;if(event.id)bot.generationId=event.id;const finish=event.choices?.[0];if(finish?.finish_reason)bot.finishReason=finish.finish_reason;if(finish?.native_finish_reason)bot.nativeFinishReason=finish.native_finish_reason;const annotations=event.choices?.[0]?.delta?.annotations || event.choices?.[0]?.message?.annotations;if(annotations)bot.annotations=[...(bot.annotations || []),...annotations];});
     } else {
       const data=await response.json();if(data.error)throw new Error(errorMessage(data.error.code,data.error.message));
-      bot.content=contentText(data.choices?.[0]?.message?.content);bot.model=data.model || model;bot.usage=data.usage;bot.annotations=data.choices?.[0]?.message?.annotations;await storeOutputImages(bot,data.choices?.[0]?.message?.images || []);if(data.choices?.[0]?.finish_reason==='length')throw new Error('Das Modell hat die Antwort wegen seiner Längenbegrenzung abgebrochen.');
+      bot.generationId=data.id;bot.finishReason=data.choices?.[0]?.finish_reason;bot.nativeFinishReason=data.choices?.[0]?.native_finish_reason;bot.content=contentText(data.choices?.[0]?.message?.content);bot.model=data.model || model;bot.usage=data.usage;bot.annotations=data.choices?.[0]?.message?.annotations;await storeOutputImages(bot,data.choices?.[0]?.message?.images || []);if(data.choices?.[0]?.finish_reason==='length')throw new Error('Das Modell hat die Antwort wegen seiner Längenbegrenzung abgebrochen.');
     }
     if(!bot.content && !bot.attachments?.length)throw new Error('OpenRouter lieferte keine Textantwort. Bitte ein anderes Chatmodell wählen.');
     status('Antwort vollständig.');
@@ -285,4 +287,11 @@ function applyPromptCaching(messages,model){
  const parts=typeof target.content==='string'?[{type:'text',text:target.content}]:target.content.map(p=>({...p}));
  const text=[...parts].reverse().find(p=>p.type==='text'&&p.text);if(!text)return false;
  text.cache_control={type:'ephemeral'};target.content=parts;return true;
+}
+
+function outputOptions(model) {
+ const selected=Number(getStorage('or_output_limit'));
+ if(![8192,16384,32768,65536].includes(selected))return {};
+ const maximum=Number(modelCatalog.find(m=>m.id===model)?.max_output_tokens);
+ return {max_tokens:Number.isFinite(maximum)&&maximum>0?Math.min(selected,Math.floor(maximum)):selected};
 }
