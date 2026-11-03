@@ -52,3 +52,5 @@ Ursache: 11.743 Bytes große Erlkönig-Datei mit 3.323 Ereignissen wurde zu 532.
 
 ## Update 2.4.2 – eindeutiger Stand und erneutes Laden (03.11.2026)
 Korrigiertes Dateimodul wird über `office.mjs?v=2.4.2` geladen; versionsgebundene Script-Adressen und neuer Offline-Cache verhindern Wiederverwendung des alten Importmoduls. Sichtbare Version 2.4.2 und eigener Button „App neu laden“. Der bisherige ↻-Button aktualisiert nur den Modellkatalog. Keine Änderung der Speicherkennungen oder Benutzerbestände. Vollständige automatisierte Tests und Original-Erlkönig-Import erfolgreich (69.030 Zeichen, alle Ereignisse und Ticks geprüft). Browservorschau zeigt 2.4.2; Upload in der HTTP-Vorschau scheitert bereits an fehlendem crypto.randomUUID (unsicherer Kontext), daher kein erfolgreicher Uploadnachweis in dieser Vorschau. Produktionsadresse ist HTTPS. Veröffentlichung folgt.
+
+2.4.2 veröffentlicht: Sites-Deployment `appgdep_6aea24dfadfc819192fe79035117d65e` bestätigt succeeded, Hosting-Commit `4d2b720feed31019d27d64229d8d69229e883b49`, bestehende private URL https://gemini-client-chat.wibem1.chatgpt.site . Erfolgreicher Produktionsupload durch Benutzer noch unbestätigt.
