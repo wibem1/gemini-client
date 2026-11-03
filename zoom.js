@@ -14,6 +14,10 @@ function normalizeUiZoom(value) {
 }
 function setUiZoom(value) {
   uiZoom = normalizeUiZoom(value);
+  // CSS zoom scales the root visually, but viewport units still describe the
+  // unscaled viewport. Compensate the app shell's height so the composer stays
+  // within the visible area even at 150 %.
+  document.documentElement.style.setProperty('--ui-zoom', String(uiZoom / 100));
   document.documentElement.style.zoom = String(uiZoom / 100);
   const readout = document.getElementById('zoom-reset');
   if (readout) readout.textContent = uiZoom + ' %';
