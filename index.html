@@ -334,6 +334,13 @@
     #model-info-content p {margin:6px 0;}
     #model-info-content details {margin-bottom:16px;}
     #model-info-content a {color:var(--primary);}
+    .zoom-controls { display:flex; align-items:center; gap:3px; flex-shrink:0; }
+    .zoom-controls .touch-btn { min-width:40px; padding:6px; }
+    .zoom-controls .zoom-value { min-width:62px; font-variant-numeric:tabular-nums; }
+    @media(max-width:650px) {
+      .zoom-controls .touch-btn { min-width:36px; padding:5px 4px; }
+      .zoom-controls .zoom-value { min-width:54px; }
+    }
   </style>
 </head>
 <body>
@@ -373,6 +380,11 @@
         <button class="touch-btn" onclick="refreshAllModels()" title="Modellliste aktualisieren" aria-label="Modellliste aktualisieren">↻</button>
       </div>
 
+      <div class="zoom-controls" role="group" aria-label="Darstellungsgröße">
+        <button class="touch-btn" type="button" id="zoom-out" aria-label="Darstellung verkleinern" title="Verkleinern" onclick="changeUiZoom(-10)">−</button>
+        <button class="touch-btn zoom-value" type="button" id="zoom-reset" title="Auf 100 % zurücksetzen" aria-label="Zoom auf 100 Prozent zurücksetzen" onclick="setUiZoom(100)">100 %</button>
+        <button class="touch-btn" type="button" id="zoom-in" aria-label="Darstellung vergrößern" title="Vergrößern" onclick="changeUiZoom(10)">+</button>
+      </div>
       <button class="touch-btn" aria-label="Einstellungen" onclick="openModal()">⚙</button>
     </header>
 
@@ -446,6 +458,7 @@
   <script src="uploads.js" defer></script>
   <script src="images.js" defer></script>
 <script src="app.js" defer></script>
+<script src="zoom.js" defer></script>
 <dialog id="image-viewer"><div class="image-view-header"><span id="image-view-title"></span><button class="touch-btn" onclick="document.getElementById('image-viewer').close()">Schließen</button></div><img id="image-full" alt=""></dialog>
 </body>
 </html>
