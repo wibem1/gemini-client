@@ -1,6 +1,6 @@
-# KI Workspace 2.4.0
+# KI Workspace 2.4.1
 
-Stand: 03.10.2026. Installierbare Chat-App mit OpenRouter-Modellwahl, gespeicherten Chats, mehreren Anhängen und lokal erzeugten Ergebnisdateien.
+Stand: 03.11.2026. Installierbare Chat-App mit OpenRouter-Modellwahl, gespeicherten Chats, mehreren Anhängen und lokal erzeugten Ergebnisdateien.
 
 ## Benutzen
 
@@ -32,6 +32,9 @@ Anhänge werden erst mit „Senden“ in den Modellauftrag aufgenommen. Ihre Ori
 Alte DOC/XLS-Dateien, Audio, Video und allgemeine ZIP-Dateien werden derzeit nicht als Modellanhang gelesen. Die PDF-Schrift deckt die üblichen lateinischen, griechischen und kyrillischen Zeichen ab; nicht alle Schriften weltweit. MIDI mit SMPTE-Zeitbasis wird abgewiesen.
 
 ## Weitere Funktionen
+
+- Darstellungszoom im Kopfbereich: 70–150 % in 10-%-Schritten, Klick auf Prozentwert stellt 100 % wieder her. Die Einstellung bleibt lokal erhalten.
+
 
 - Chatsuche, einzelne Chats löschen, neuer Chat und letzter geöffneter Chat.
 - Persönliche Anweisungen in den Einstellungen; sie werden bei jedem Auftrag mitgesendet.
