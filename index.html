@@ -12,6 +12,7 @@
   <meta name="apple-mobile-web-app-title" content="KI Workspace">
   <style>
     :root {
+      --ui-zoom: 1;
       --bg: #f8fafc;
       --card: #ffffff;
       --sidebar: #f1f5f9;
@@ -26,6 +27,7 @@
     html, body {
       height: 100%;
       height: 100dvh;
+      height: calc(100dvh / var(--ui-zoom));
       overflow: hidden;
       background: var(--bg);
       color: var(--text);
@@ -82,6 +84,7 @@
       flex-direction: column;
       height: 100%;
       height: 100dvh;
+      height: calc(100dvh / var(--ui-zoom));
       background: #fff;
       overflow: hidden;
     }
@@ -135,6 +138,7 @@
     /* CHAT BEREICH */
     #chat-scroll {
       flex: 1;
+      min-height: 0;
       overflow-y: auto;
       padding: 16px;
       display: flex;
