@@ -35,3 +35,6 @@ Nächster Schritt: automatisierte Tests und tatsächlichen Browserlayouttest dur
 
 ## Zusätzliche Layoutprüfung 03.11.2026
 Eine isolierte Nachbildung der relevanten HTML-/CSS-Struktur wurde im echten Chromium mittels Playwright mit 1280×800, 800×600, 390×844 und 390×480 Pixel sowie 70 %, 100 %, 130 % und 150 % CSS-Zoom geprüft (16 Kombinationen). Der untere Rand des Eingabefeld-Footers stimmte jeweils mit dem Viewportrand überein, während der Chatbereich schrumpfte. Der Browser akzeptierte `calc(100dvh / 1.5)`. **Prüfumfang:** Layoutsimulation; keine vollständige echte App mit allen Header-Elementen, keine mobile Safari-/Tastaturprüfung und kein kompletter npm-Testlauf. Die Veröffentlichung auf der privaten Site ist weiterhin unbestätigt.
+
+## Integration 03.11.2026
+Zoom-Eingabezeilenkorrektur aus PR #2 in `main` integriert, Merge-Commit `16c0ff00fb47f9d58356e510d797289218269081`. Die vorhandene Version 2.4.1 bleibt bestehen; keine neue Versionsnummer vergeben. Testbeleg: Chromium-Layoutsimulation 16/16 Kombinationen erfolgreich. Vollständige App-Browserprüfung und `npm test` bleiben ausstehend. **Die bestehende ChatGPT-Site wurde durch den GitHub-Merge nicht nachweislich aktualisiert**; Veröffentlichung und Bestätigung der Site-Version gesondert erforderlich. Keine Browserdaten oder Einstellungen migrieren oder löschen.
