@@ -38,3 +38,8 @@ Eine isolierte Nachbildung der relevanten HTML-/CSS-Struktur wurde im echten Chr
 
 ## Integration 03.11.2026
 Zoom-Eingabezeilenkorrektur aus PR #2 in `main` integriert, Merge-Commit `16c0ff00fb47f9d58356e510d797289218269081`. Die vorhandene Version 2.4.1 bleibt bestehen; keine neue Versionsnummer vergeben. Testbeleg: Chromium-Layoutsimulation 16/16 Kombinationen erfolgreich. Vollständige App-Browserprüfung und `npm test` bleiben ausstehend. **Die bestehende ChatGPT-Site wurde durch den GitHub-Merge nicht nachweislich aktualisiert**; Veröffentlichung und Bestätigung der Site-Version gesondert erforderlich. Keine Browserdaten oder Einstellungen migrieren oder löschen.
+
+## Veröffentlichungsprüfung 03.11.2026
+- Vollständiges `npm test` erfolgreich; fehlerhaft doppelt maskierte reguläre Ausdrücke im Zoomtest korrigiert (keine Änderung des App-Verhaltens).
+- Vollständige App in Chromium geprüft: 150 % Zoom, Viewport 1363×936; Eingabefeld vollständig sichtbar (Unterkante 926 px), Senden-Button sichtbar. Zoom bleibt nach Neuladen bei 150 %.
+- Veröffentlichung auf bestehender owner-privater Site `appgprj_6ac0ecbb1140819190dd30a72a2cddca` vorbereitet. Gleiche URL und Speicherschlüssel; keine Löschung oder Migration von localStorage/IndexedDB. Prüfung betrifft Desktop-Chromium, nicht mobile Safari/Bildschirmtastatur.
