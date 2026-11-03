@@ -29,6 +29,6 @@ console.log('UI zoom logic: OK');
 
 // Regression: scaling the page must also compensate the viewport-sized shell.
 const html = fs.readFileSync('index.html', 'utf8');
-assert.match(html, /--ui-zoom:\\s*1;/);
-assert.equal((html.match(/height:\\s*calc\\(100dvh \\/ var\\(--ui-zoom\\)\\);/g)||[]).length,2);
-assert.match(html, /#chat-scroll\\s*\\{[^}]*min-height:\\s*0;/s);
+assert.match(html, /--ui-zoom:\s*1;/);
+assert.equal((html.match(/height:\s*calc\(100dvh \/ var\(--ui-zoom\)\);/g)||[]).length,2);
+assert.match(html, /#chat-scroll\s*\{[^}]*min-height:\s*0;/s);
