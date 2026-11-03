@@ -46,3 +46,6 @@ Zoom-Eingabezeilenkorrektur aus PR #2 in `main` integriert, Merge-Commit `16c0ff
 
 ## Veröffentlichung abgeschlossen 03.11.2026
 Sites bestätigt `succeeded`: https://gemini-client-chat.wibem1.chatgpt.site . Veröffentlichter Hosting-Commit `73c27ec60abe136d96ccec557adcaa2243a6a0f5`, App-Version 2.4.1 mit Zoomkorrektur. Bestehende Site und privater Zugriff beibehalten. Live-Aufruf zeigt erwartete Anmeldung; 150-%-Layoutprüfung erfolgte zuvor an denselben vollständigen App-Dateien in der lokalen Browservorschau. Kein Zugriff auf die Browserdaten des Benutzers und keine Datenlöschung.
+
+## MIDI-Importkorrektur 03.11.2026
+Ursache: 11.743 Bytes große Erlkönig-Datei mit 3.323 Ereignissen wurde zu 532.694 Zeichen formatiert und an der 200.000-Zeichen-Grenze abgewiesen. Kompakte verlustfreie Ereignistabelle mit gemeinsam beschriebenen Feldlayouts und ganzzahligen absoluten Ticks: 69.030 Zeichen. Alle Ereignisse, Felder, Spurzuordnungen und Tickpositionen gegen den Originalparser geprüft. Keine Noten-/Controllerfilterung, keine Änderung der Benutzerspeicherung. Vollständiges npm test vor Integration erfolgreich; neuer Regressionstest mit über 3.400 Ereignissen ebenfalls erfolgreich. Keine kostenpflichtige Modellanfrage. Version 2.4.1 bleibt bestehen; Hosting-Veröffentlichung folgt.

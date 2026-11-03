@@ -4,6 +4,7 @@ import { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, Ta
 import { PDFDocument, rgb } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import { parseMidi } from 'midi-file';
+import { describeMidi } from './midi-import.js';
 import JSZip from 'jszip';
 const MAX_TEXT=200000;
 function guardText(text) { if(text.length>MAX_TEXT)throw new Error('Die Datei enthält mehr als 200.000 Zeichen. Bitte einen kleineren Ausschnitt verwenden. Es wurde nichts gekürzt.');return text; }
@@ -19,14 +20,8 @@ export async function readDocument(file,arrayBuffer) {
   return {text:guardText(JSON.stringify({sheets},null,2)),description:'Tabellenblätter, Zelladressen, Werte und Formeln eingelesen.'};
  }
  if(['mid','midi'].includes(ext)) {
-  const midi=parseMidi(new Uint8Array(arrayBuffer));if(midi.header.framesPerSecond)throw new Error('MIDI mit SMPTE-Zeitbasis wird derzeit nicht unterstützt.');
-  const ppq=midi.header.ticksPerBeat,tracks=[];let count=0;
-  for(const track of midi.tracks) {
-   let tick=0;const events=[];
-   for(const event of track){tick+=event.deltaTime;if(++count>50000)throw new Error('Die MIDI-Datei enthält mehr als 50.000 Ereignisse. Bitte einen Ausschnitt wählen.');const {deltaTime,...data}=event;events.push({beat:tick/ppq,...data});}
-   tracks.push(events);
-  }
-  return {text:guardText(JSON.stringify({format:midi.header.format,ticksPerBeat:ppq,tracks},null,2)),description:'MIDI-Spuren, Noten, Tempo und Controller als Ereignisse eingelesen.'};
+  const midi=parseMidi(new Uint8Array(arrayBuffer));
+  return {text:guardText(describeMidi(midi)),description:'MIDI-Spuren, Noten, Tempo und Controller vollständig als kompakte Ereignistabelle eingelesen.'};
  }
  throw new Error('Dieses Dokumentformat wird nicht unterstützt.');
 }
