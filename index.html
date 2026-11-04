@@ -27,12 +27,14 @@
     html, body {
       height: 100%;
       height: 100dvh;
-      height: calc(100dvh / var(--ui-zoom));
+      height: var(--app-height, 100dvh);
       overflow: hidden;
       background: var(--bg);
       color: var(--text);
     }
     body {
+      zoom: var(--ui-zoom);
+      width: var(--app-width, 100%);
       display: flex;
       position: relative;
     }
@@ -83,8 +85,6 @@
       display: flex;
       flex-direction: column;
       height: 100%;
-      height: 100dvh;
-      height: calc(100dvh / var(--ui-zoom));
       background: #fff;
       overflow: hidden;
     }
@@ -246,7 +246,7 @@
       background: #f8fafc;
     }
 
-    #workspace { min-width:0; }
+    #workspace { min-width:0; height:100%; }
     .brand small { font-size:12px; color:var(--muted); }
     header { height:auto; min-height:70px; padding:12px; align-items:flex-start; }
     .header-left { overflow:visible; flex-wrap:wrap; white-space:normal; min-width:0; gap:8px; }
@@ -345,6 +345,55 @@
       .zoom-controls .touch-btn { min-width:36px; padding:5px 4px; }
       .zoom-controls .zoom-value { min-width:54px; }
     }
+
+    /* Separate navigation and selectors, so zoom cannot crowd out the model. */
+    html { height:100%; }
+    header { display:grid; grid-template-columns:minmax(0,1fr) auto auto; align-items:center; flex-shrink:0; gap:8px; padding:10px 12px; }
+    .header-left { display:contents; }
+    .header-nav { grid-column:1; grid-row:1; display:flex; align-items:center; gap:8px; min-width:0; }
+    .brand { white-space:nowrap; }
+    .model-controls { grid-column:1 / -1; grid-row:2; display:grid; grid-template-columns:minmax(100px,.7fr) minmax(100px,.8fr) minmax(0,2fr) auto; gap:8px; min-width:0; }
+    .model-controls select.ctrl-select { width:100%; max-width:none; min-width:0; flex-basis:auto; order:0; color:var(--text); }
+    .model-controls #sel-provider { grid-column:1; grid-row:1; }
+    .model-controls #work-mode { grid-column:2; grid-row:1; }
+    .model-controls #sel-model { grid-column:3; grid-row:1; }
+    .model-controls .refresh-models { grid-column:4; grid-row:1; }
+    header > .zoom-controls { grid-column:2; grid-row:1; }
+    header > button { grid-column:3; grid-row:1; }
+    .model-info-bar { align-items:flex-start; padding:6px 12px; }
+    .model-info-bar #model-details { padding:2px 0; font-size:12px; line-height:1.45; }
+    #btn-model-info { min-height:32px; font-size:12px; padding:5px 8px; }
+    #status { font-size:12px; padding:5px 12px; flex-shrink:0; }
+    footer.input-bar { padding:8px 12px max(8px, env(safe-area-inset-bottom)); }
+    textarea#user-text { min-width:0; width:0; }
+    #hero { margin-top:clamp(16px, 5vh, 60px) !important; }
+    @media (max-width:1100px) {
+      .header-nav .reload-label { display:none; }
+      .header-nav .reload-icon { display:inline; }
+      .brand { font-size:16px; }
+      .brand small { font-size:10px; }
+      .model-controls { grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto; }
+      .model-controls #work-mode { grid-column:1; grid-row:1; }
+      .model-controls #sel-provider { grid-column:2; grid-row:1; }
+      .model-controls #sel-model { grid-column:1 / 3; grid-row:2; }
+      .model-controls .refresh-models { grid-column:3; grid-row:1 / 3; }
+    }
+    @media (max-width:650px) {
+      header { gap:6px; padding:8px; }
+      .header-nav { gap:5px; }
+      .brand { font-size:14px; }
+      .brand small { display:block; }
+      .zoom-controls .touch-btn { min-width:30px; }
+      .zoom-controls .zoom-value { min-width:48px; }
+      .touch-btn { padding:6px; }
+      .model-info-bar { padding:5px 8px; }
+      .model-info-bar #model-details { max-height:3em; overflow:auto; }
+      #chat-scroll { padding:12px; }
+      .web-toggle small { font-size:11px; }
+      footer.input-bar { padding-left:8px; padding-right:8px; }
+      .input-row { flex-wrap:nowrap; }
+    }
+    .reload-icon { display:none; }
   </style>
 </head>
 <body>
@@ -373,15 +422,15 @@
   <div id="workspace">
     <header>
       <div class="header-left">
-        <button class="touch-btn" aria-label="Menü öffnen" onclick="openSidebar()">☰</button>
-        <span class="brand">KI Workspace <small>2.4.3</small></span><button class="touch-btn" onclick="location.reload()" title="App neu laden" aria-label="App neu laden">App neu laden</button>
+        <div class="header-nav"><button class="touch-btn" aria-label="Menü öffnen" onclick="openSidebar()">☰</button>
+        <span class="brand">KI Workspace <small>2.4.4</small></span><button class="touch-btn" onclick="location.reload()" title="App neu laden" aria-label="App neu laden"><span class="reload-label">App neu laden</span><span class="reload-icon" aria-hidden="true">⟳</span></button></div>
 
-        <!-- Dropdowns -->
+        <div class="model-controls">
         <select aria-label="Anbieter" id="sel-provider" class="ctrl-select" onchange="filterModels(true)"></select>
         <select id="work-mode" class="ctrl-select" aria-label="Aufgabe" onchange="changeWorkMode()"><option value="chat">Chat</option><option value="image">Bild erstellen / bearbeiten</option></select>
         <select aria-label="Modell" id="sel-model" class="ctrl-select" onchange="saveModelChoice()"></select>
 
-        <button class="touch-btn" onclick="refreshAllModels()" title="Modellliste aktualisieren" aria-label="Modellliste aktualisieren">↻</button>
+        <button class="touch-btn refresh-models" onclick="refreshAllModels()" title="Modellliste aktualisieren" aria-label="Modellliste aktualisieren">↻</button></div>
       </div>
 
       <div class="zoom-controls" role="group" aria-label="Darstellungsgröße">
@@ -459,10 +508,10 @@
   <script src="vendor/marked.js" defer></script>
   <script src="vendor/purify.js" defer></script>
   <script src="files.js" defer></script>
-  <script src="uploads.js?v=2.4.3" defer></script>
+  <script src="uploads.js?v=2.4.4" defer></script>
   <script src="images.js" defer></script>
-<script src="app.js?v=2.4.3" defer></script>
-<script src="zoom.js" defer></script>
+<script src="app.js?v=2.4.4" defer></script>
+<script src="zoom.js?v=2.4.4" defer></script>
 <dialog id="image-viewer"><div class="image-view-header"><span id="image-view-title"></span><button class="touch-btn" onclick="document.getElementById('image-viewer').close()">Schließen</button></div><img id="image-full" alt=""></dialog>
 </body>
 </html>

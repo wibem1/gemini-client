@@ -18,7 +18,7 @@ function setUiZoom(value) {
   // unscaled viewport. Compensate the app shell's height so the composer stays
   // within the visible area even at 150 %.
   document.documentElement.style.setProperty('--ui-zoom', String(uiZoom / 100));
-  document.documentElement.style.zoom = String(uiZoom / 100);
+  resizeUiViewport();
   const readout = document.getElementById('zoom-reset');
   if (readout) readout.textContent = uiZoom + ' %';
   const minus = document.getElementById('zoom-out');
@@ -31,3 +31,15 @@ function changeUiZoom(delta) { setUiZoom(uiZoom + delta); }
 
 try { setUiZoom(localStorage.getItem(UI_ZOOM_KEY) || 100); }
 catch { setUiZoom(100); }
+
+// Keep viewport measurement outside the zoomed body, including the iPad keyboard.
+function resizeUiViewport() {
+  const viewport = window.visualViewport;
+  const height = viewport ? viewport.height : window.innerHeight;
+  const width = window.innerWidth;
+  const style = document.documentElement.style;
+  style.setProperty('--app-height', (height / (uiZoom / 100)) + 'px');
+  style.setProperty('--app-width', (width / (uiZoom / 100)) + 'px');
+}
+window.addEventListener('resize', resizeUiViewport);
+if (window.visualViewport) window.visualViewport.addEventListener('resize', resizeUiViewport);

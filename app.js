@@ -1,5 +1,5 @@
 'use strict';
-const VERSION = '2.4.3';
+const VERSION = '2.4.4';
 const $ = id => document.getElementById(id);
 const fallbackStore = {};
 let storageWarning = false;
