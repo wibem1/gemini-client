@@ -20,8 +20,8 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm test
       - run: node --test tests/bridge.test.mjs
+      - run: npm test
       - name: CLI smoke test without authentication
         shell: pwsh
         run: |

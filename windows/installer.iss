@@ -8,6 +8,9 @@ OutputBaseFilename=KI-Workspace-Bridge-2.5.0
 UninstallDisplayName=KI Workspace Bridge
 DisableProgramGroupPage=yes
 
+[Dirs]
+Name: "{localappdata}\KI Workspace Bridge"; Flags: uninsneveruninstall
+
 [Files]
 Source: "bridge.mjs"; DestDir: "{app}"; Flags: ignoreversion
 Source: "projects.example.json"; DestDir: "{app}"; Flags: ignoreversion
