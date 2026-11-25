@@ -66,3 +66,37 @@ Kopfzeile mit fester Trennung zwischen Navigation/Zoom und Modellauswahl; auf Ta
 Prüfung: vollständige bestehende Tests in einer originalgetreuen Testkopie erfolgreich (Hosting-Repository legt App-Dateien unter dist ab, Tests erwarten sie im Root). Zoomregression prüft verkleinerten VisualViewport. Echte Chromium-Ansicht bei Zoom geprüft, iframe mit iPad-Hochformat 810×1080: Footerunterkante exakt 1080, Bodybreite 810. Tablet-Hoch-/Querformat-Struktur geladen. HTTP-Vorschau startet den Chat wegen bereits bekanntem crypto.randomUUID-Problem im unsicheren Kontext nicht vollständig; kein vollständiger Chat-/Modelltest. Keine Prüfung in Safari oder mit echter iPad-Tastatur; Nutzerbestätigung offen. Private Veröffentlichung folgt.
 
 Veröffentlichung: succeeded, Deployment appgdep_6aeaae6132e88191942ec4ed32e06e10, Hosting-Commit 0731e23a911077661947758100853f019e76ef02. 130-%-Chromium-Messung: Hochformat 810×1080 Footerunterkante 1080, Modellfeld 725 px; Querformat 1080×810 Footerunterkante 810. Bestehende private URL beibehalten.
+
+## Claude Code unter Windows – Entwicklungsversion 2.5.0 (25.11.2026)
+
+Entwicklungsbranch `feature/claude-code-windows` auf Basis von 2.4.4. Implementiert sind die lokale Bridge mit Sitzungs-Kopplung und festem Site-Ursprung, die Auswahl lokal freigegebener GitHub-Checkouts, Auftragsfortschritt, Abbruch und lokales Fortsetzen. Der Installer und die Prüfungen sind als Windows-Workflow definiert. Details zur Einrichtung und zu den Berechtigungen stehen in [windows/README.md](windows/README.md).
+
+Prüfstatus bei Commit-Erstellung: integrierter Windows-Lauf und Installer noch ausstehend. Der Bridge-Integrationstest simuliert das CLI-Protokoll. Anmeldung, echte Modellantwort und lokale Browserverbindung zur privaten Site erfordern eine separate Abnahme. Kein Cloud-/Hybrid-Nachweis. Nächster Schritt: Windows-Workflow auswerten und danach echte lokale Anmeldung mit einem freigegebenen Test-Checkout prüfen.
+
+Erster Windows-Actions-Lauf (45611578564): `npm ci` und die ersten Tests erfolgreich. Ein bestehender Bildtest lud ein absolutes Windows-Dateisystemziel als ESM-URL und stoppte den Lauf. Der Test verwendet jetzt `pathToFileURL`; die Bridge-Prüfung läuft vor der übrigen Suite. Der Wiederholungslauf steht aus.
+
+### Windows-Prüfnachweis (25.11.2026)
+
+[GitHub Actions 45611848062](https://github.com/wibem1/gemini-client/actions/runs/45611848062) war für `6644866dc1f7042f4e6e1637928e9bc025b7fe11` erfolgreich. `npm ci`, alle vorhandenen App-Tests und der neue Loopback-Integrationstest bestanden unter Windows mit Node 24. Der neue Test verwendet ein simuliertes Claude-CLI-Protokoll und prüft Herkunft, Kopplung, Projektfreigabe, parallele Startversuche, Aktivität, Abbruch und Fortsetzen. Die originale native CLI 2.1.332 wurde installiert. `--version`, `--help` und die geprüften CLI-Optionen waren verfügbar. Es wurde kein Modellauftrag gesendet.
+
+Der [Installer aus dem Actions-Lauf](https://github.com/wibem1/gemini-client/actions/runs/45611848062/artifacts/15020083434) wurde gebaut und als Prüfartefakt hochgeladen. SHA-256 der EXE: `22800f945a0df1b1e47fa6b0c828e131d5d708065987d5b7bdfbe0654492e252`. Die Installation dieses Pakets und der vollständige Ablauf in der privaten WebApp mit einem tatsächlichen Anthropic-Konto und einem GitHub-Checkout sind offen. Der Pull Request bleibt zur Abnahme als Entwurf. Es gibt keine veröffentlichte App-Version 2.5.0. Nächster Schritt: Installations- und Browserabnahme unter Windows mit einem echten lokalen Claude-Auftrag durchführen.
+
+### Sites-Diagnose und lokale Abnahme (25.11.2026)
+
+Sites meldet das bestehende Projekt `appgprj_6ac0ecbb1140819190dd30a72a2cddca` als aktiv, mit der bisherigen privaten Produktionsadresse und Zugriff ausschließlich für den Eigentümer. Für 2.5.0 wurde keine neue Site-Version gespeichert und kein Deployment gestartet.
+
+Der Sites-Helper behandelt vorhandene Verzeichnisse wie `work` und `outputs` als Checkout-Inhalt. Sowohl das zuvor verwendete Arbeitsverzeichnis als auch das aktuelle enthalten diese Verzeichnisse, aber kein `.openai/hosting.json`. Der Helper versucht das fehlende Manifest vor dem Git-Netzwerkzugriff zu lesen und verdeckt den Dateifehler mit „Unable to prepare the Site“. Die Meldung ließ sich im aktuellen Arbeitsverzeichnis mit einer synthetischen Credential-Eingabe reproduzieren. Die Verbindung zum Sites-Quellrepository aus einem leeren Checkout ist weiterhin ungeprüft. Für die Fortsetzung braucht der offizielle Workflow einen tatsächlich leeren, beschreibbaren Checkout. Bei dieser Diagnose wurden entsprechend dem Auftrag keine lokalen Arbeitsdateien erstellt.
+
+GitHub bestätigt alle erfolgreichen Windows-Schritte und die Verfügbarkeit des oben verlinkten Actions-Artefakts. Auf dem lokalen Windows-Rechner war Claude Code 2.1.292 auffindbar. `claude auth status` meldete `loggedIn: false`. Die standardmäßige Bridge-Projektkonfiguration unter `%LOCALAPPDATA%\KI Workspace Bridge\projects.json` war nicht vorhanden. Installation, Kopplung in Chrome oder Edge und ein erfolgreicher echter Claude-Auftrag bleiben offen.
+
+### Private Veröffentlichung und Windows-Einrichtung (25.11.2026)
+
+Der offizielle Sites-Helper konnte das Quellrepository aus einem leeren Arbeitsordner mit freigegebenem Netzwerkzugriff öffnen. Ausgangscommit war `0731e23a911077661947758100853f019e76ef02`. Die drei Webdateien `index.html`, `sw.js` und `development.mjs` stammen unverändert aus dem unter Windows geprüften Branch-Stand. Nach Syntaxprüfung, Push und Paketierung bestätigte Sites für Hosting-Commit `140784f9fce94f301f80264ac6138612407561b6` das private Deployment `appgdep_6b075dabbc888191bae28615f572a187` als `succeeded`. Die bestehende Produktionsadresse zeigt im Browser 2.5.0 und öffnet den Dialog „Softwareentwicklung mit Claude Code“.
+
+Der Installer aus Lauf 45611848062 wurde heruntergeladen, sein EXE-Hash geprüft und die Bridge 2.5.0 unter dem lokalen Windows-Benutzerkonto installiert. Konfiguriert ist eine separate lokale Arbeitskopie von `wibem1/gemini-client` auf `feature/claude-code-windows`. Die installierte Bridge lauschte auf `127.0.0.1:37419`. Der lokale Loopback-Integrationstest mit simulierter CLI war erfolgreich. Im Codex-internen Browser meldete die WebApp bei der Kopplung, dass die Bridge nicht erreichbar sei. Claude Code war bei der letzten Prüfung abgemeldet. Nächster Schritt: Claude-Anmeldung und Kopplung in Edge oder Chrome prüfen, anschließend einen harmlosen echten Auftrag abnehmen.
+
+### Korrektur des Claude-Code-Dialogs – WebApp 2.5.1
+
+Die CSS-Klasse der Einstellungsmaske setzte `display: flex` auch am geschlossenen Claude-Code-Dialog. Dadurch blieb dessen Inhalt über dem Chat sichtbar. Eigene Dialogstile blenden den geschlossenen Zustand aus. Der Dialog ist zentriert, kleiner und hat einen separaten Kopf mit sichtbarer Schließen-Schaltfläche. Nur der Inhaltsbereich scrollt. Der Service-Worker-Cache wurde auf 2.5.1 aktualisiert.
+
+Prüfung: npm ci und npm test unter Windows erfolgreich. Ein gezielter DOM-Test bestätigte die Sichtbarkeit vor, während und nach dem offenen Zustand sowie den nativen Schließen-Button außerhalb des Scrollbereichs. Der Live-Klicktest im Codex-Browser war wegen eines Timeouts beim Öffnen der Site nicht möglich. Sites bestätigte das private Deployment `appgdep_6b07633cfb8c8191bfc815b96af57175` als succeeded. Hosting-Commit `cff5c7cb2b560bcc26d0cc8193eafc4dfd379839`.

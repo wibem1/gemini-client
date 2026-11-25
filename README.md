@@ -1,6 +1,10 @@
-# KI Workspace 2.4.1
+# KI Workspace 2.5.0
 
 Stand: 03.11.2026. Installierbare Chat-App mit OpenRouter-Modellwahl, gespeicherten Chats, mehreren Anhängen und lokal erzeugten Ergebnisdateien.
+
+## Softwareentwicklung unter Windows
+
+Einrichtung und Bedienung der [Claude-Code-Bridge](windows/README.md).
 
 ## Benutzen
 

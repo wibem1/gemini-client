@@ -1,0 +1,52 @@
+name: Windows bridge
+on:
+  pull_request:
+    paths:
+      - 'windows/**'
+      - 'tests/bridge.test.mjs'
+      - '.github/workflows/windows-bridge.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: node --test tests/bridge.test.mjs
+      - run: npm test
+      - name: CLI smoke test without authentication
+        shell: pwsh
+        run: |
+          $installer = 'https://claude.ai/install.ps1'
+          $script = Join-Path $env:RUNNER_TEMP 'install-claude.ps1'
+          Invoke-WebRequest $installer -OutFile $script
+          powershell -NoProfile -ExecutionPolicy Bypass -File $script
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $claude = Join-Path $env:USERPROFILE '.local\bin\claude.exe'
+          & $claude --version
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $help = & $claude --help | Out-String
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          foreach ($flag in '--safe-mode','--strict-mcp-config','--resume','--tools','--output-format') {
+            if (!$help.Contains($flag)) { throw "CLI flag missing: $flag" }
+          }
+      - name: Build Windows installer
+        shell: pwsh
+        run: |
+          $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+          & $iscc windows\installer.iss
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          Get-FileHash windows\installer-output\*.exe | Format-List
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ki-workspace-bridge-windows
+          path: windows/installer-output/*.exe
+          if-no-files-found: error

@@ -1,0 +1,7 @@
+{
+  "claude": "C:\\Users\\Name\\.local\\bin\\claude.exe",
+  "git": "C:\\Program Files\\Git\\cmd\\git.exe",
+  "projects": {
+    "owner/repo": "C:\\Projects\\repo"
+  }
+}
