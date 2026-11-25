@@ -66,3 +66,9 @@ Kopfzeile mit fester Trennung zwischen Navigation/Zoom und Modellauswahl; auf Ta
 Prüfung: vollständige bestehende Tests in einer originalgetreuen Testkopie erfolgreich (Hosting-Repository legt App-Dateien unter dist ab, Tests erwarten sie im Root). Zoomregression prüft verkleinerten VisualViewport. Echte Chromium-Ansicht bei Zoom geprüft, iframe mit iPad-Hochformat 810×1080: Footerunterkante exakt 1080, Bodybreite 810. Tablet-Hoch-/Querformat-Struktur geladen. HTTP-Vorschau startet den Chat wegen bereits bekanntem crypto.randomUUID-Problem im unsicheren Kontext nicht vollständig; kein vollständiger Chat-/Modelltest. Keine Prüfung in Safari oder mit echter iPad-Tastatur; Nutzerbestätigung offen. Private Veröffentlichung folgt.
 
 Veröffentlichung: succeeded, Deployment appgdep_6aeaae6132e88191942ec4ed32e06e10, Hosting-Commit 0731e23a911077661947758100853f019e76ef02. 130-%-Chromium-Messung: Hochformat 810×1080 Footerunterkante 1080, Modellfeld 725 px; Querformat 1080×810 Footerunterkante 810. Bestehende private URL beibehalten.
+
+## Claude Code unter Windows – Entwicklungsversion 2.5.0 (25.11.2026)
+
+Entwicklungsbranch `feature/claude-code-windows` auf Basis von 2.4.4. Implementiert sind die lokale Bridge mit Sitzungs-Kopplung und festem Site-Ursprung, die Auswahl lokal freigegebener GitHub-Checkouts, Auftragsfortschritt, Abbruch und lokales Fortsetzen. Der Installer und die Prüfungen sind als Windows-Workflow definiert. Details zur Einrichtung und zu den Berechtigungen stehen in [windows/README.md](windows/README.md).
+
+Prüfstatus bei Commit-Erstellung: integrierter Windows-Lauf und Installer noch ausstehend. Der Bridge-Integrationstest simuliert das CLI-Protokoll. Anmeldung, echte Modellantwort und lokale Browserverbindung zur privaten Site erfordern eine separate Abnahme. Kein Cloud-/Hybrid-Nachweis. Nächster Schritt: Windows-Workflow auswerten und danach echte lokale Anmeldung mit einem freigegebenen Test-Checkout prüfen.

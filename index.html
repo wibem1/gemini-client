@@ -394,6 +394,10 @@
       .input-row { flex-wrap:nowrap; }
     }
     .reload-icon { display:none; }
+    #development-dialog { width: min(92vw, 720px); max-height: 88dvh; overflow: auto; }
+    #development-dialog label { display: block; margin-top: 12px; }
+    #development-prompt { display: block; width: 100%; margin-bottom: 12px; }
+    #development-output { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 30dvh; overflow: auto; }
   </style>
 </head>
 <body>
@@ -407,6 +411,7 @@
       <strong>Menü</strong>
       <button class="touch-btn" onclick="closeSidebar()">✕</button>
     </div>
+    <button class="btn-side" id="development-open" type="button" aria-haspopup="dialog">Softwareentwicklung</button>
     <button class="btn-side" onclick="newChat()">+ Neuer Chat</button>
     <input id="chat-search" type="search" placeholder="Chats durchsuchen" aria-label="Chats durchsuchen" oninput="renderChatList()">
     <div id="chat-list" style="flex:1;overflow:auto" aria-label="Gespeicherte Chats"></div>
@@ -423,7 +428,7 @@
     <header>
       <div class="header-left">
         <div class="header-nav"><button class="touch-btn" aria-label="Menü öffnen" onclick="openSidebar()">☰</button>
-        <span class="brand">KI Workspace <small>2.4.4</small></span><button class="touch-btn" onclick="location.reload()" title="App neu laden" aria-label="App neu laden"><span class="reload-label">App neu laden</span><span class="reload-icon" aria-hidden="true">⟳</span></button></div>
+        <span class="brand">KI Workspace <small>2.5.0</small></span><button class="touch-btn" onclick="location.reload()" title="App neu laden" aria-label="App neu laden"><span class="reload-label">App neu laden</span><span class="reload-icon" aria-hidden="true">⟳</span></button></div>
 
         <div class="model-controls">
         <select aria-label="Anbieter" id="sel-provider" class="ctrl-select" onchange="filterModels(true)"></select>
@@ -504,14 +509,35 @@
   </div>
 
   <dialog id="model-info-dialog" aria-labelledby="model-info-title"><div class="model-info-header"><h2 id="model-info-title">Modellinfo</h2><button class="touch-btn" onclick="document.getElementById('model-info-dialog').close()" autofocus>Schließen</button></div><div id="model-info-content"></div></dialog>
+  <dialog id="development-dialog" class="modal-card" aria-labelledby="development-title">
+    <form method="dialog"><button class="touch-btn" aria-label="Schließen">✕</button></form>
+    <h3 id="development-title">Softwareentwicklung mit Claude Code</h3>
+    <p>Windows lokal · GitHub-Checkout · Dateien lesen und bearbeiten</p>
+    <label for="development-token">Kopplungscode der Windows-Bridge</label>
+    <div><input id="development-token" type="password" autocomplete="off">
+      <button class="touch-btn" id="development-connect" type="button">Verbinden</button></div>
+    <label for="development-project">GitHub-Projekt</label>
+    <div><select id="development-project"></select>
+      <a id="development-github" target="_blank" rel="noopener noreferrer" hidden>Auf GitHub öffnen</a></div>
+    <label for="development-prompt">Entwicklungsauftrag oder Folgeauftrag</label>
+    <textarea id="development-prompt" rows="5" maxlength="4000"></textarea>
+    <div>
+      <button class="touch-btn" id="development-start" disabled>Starten</button>
+      <button class="touch-btn" id="development-resume" disabled>Fortsetzen</button>
+      <button class="touch-btn" id="development-cancel" disabled>Abbrechen</button>
+    </div>
+    <p id="development-status" role="status"></p>
+    <pre id="development-output" tabindex="0" aria-label="Claude-Code-Ausgabe"></pre>
+  </dialog>
+  <script type="module" src="development.mjs?v=2.5.0"></script>
   <script src="model-info.js" defer></script>
   <script src="vendor/marked.js" defer></script>
   <script src="vendor/purify.js" defer></script>
   <script src="files.js" defer></script>
-  <script src="uploads.js?v=2.4.4" defer></script>
+  <script src="uploads.js?v=2.5.0" defer></script>
   <script src="images.js" defer></script>
-<script src="app.js?v=2.4.4" defer></script>
-<script src="zoom.js?v=2.4.4" defer></script>
+<script src="app.js?v=2.5.0" defer></script>
+<script src="zoom.js?v=2.5.0" defer></script>
 <dialog id="image-viewer"><div class="image-view-header"><span id="image-view-title"></span><button class="touch-btn" onclick="document.getElementById('image-viewer').close()">Schließen</button></div><img id="image-full" alt=""></dialog>
 </body>
 </html>
